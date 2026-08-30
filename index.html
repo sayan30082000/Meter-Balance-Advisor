@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Meter Balance Advisor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#eceff3; --panel:#ffffff; --panel2:#f4f7fa; --ink:#131922; --ink2:#556577;
+  --line:#dce2e9; --line2:#e9eef3;
+  --amber:#bd6f14; --amber-soft:#f5e6d2;
+  --cyan:#0f7a74; --cyan-soft:#d3ebe9;
+  --good:#1c7a44; --good-soft:#d7ecdf;
+  --bad:#bb392f; --bad-soft:#f5dcd9;
+  --grid:#e7ecf1; --shadow:0 1px 2px rgba(20,30,45,.04),0 8px 26px -12px rgba(20,30,45,.14);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1116; --panel:#151c25; --panel2:#1a212b; --ink:#e9eef3; --ink2:#93a2b2;
+  --line:#242f3b; --line2:#1e2731;
+  --amber:#eba652; --amber-soft:#3a2b17; --cyan:#41b7af; --cyan-soft:#123330;
+  --good:#50c281; --good-soft:#12301f; --bad:#e86f63; --bad-soft:#361a17;
+  --grid:#1b232e; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);}}
+:root[data-theme="dark"]{
+  --bg:#0c1116; --panel:#151c25; --panel2:#1a212b; --ink:#e9eef3; --ink2:#93a2b2;
+  --line:#242f3b; --line2:#1e2731;
+  --amber:#eba652; --amber-soft:#3a2b17; --cyan:#41b7af; --cyan-soft:#123330;
+  --good:#50c281; --good-soft:#12301f; --bad:#e86f63; --bad-soft:#361a17;
+  --grid:#1b232e; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:960px;margin:0 auto;padding:0 22px}
+b{color:var(--ink)}
+input,button{font-family:inherit}
+
+header{position:relative;overflow:hidden;border-bottom:1px solid var(--line);
+  background:radial-gradient(120% 140% at 90% -25%,var(--amber-soft) 0%,transparent 44%),
+    radial-gradient(90% 130% at -5% -10%,color-mix(in srgb,var(--cyan) 14%,transparent) 0%,transparent 42%),
+    linear-gradient(180deg,var(--panel),var(--bg))}
+.head{padding:36px 0 26px;position:relative}
+.toprow{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.kicker{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-weight:600}
+.tgl{border:1px solid var(--line);background:var(--panel);color:var(--ink2);border-radius:999px;width:38px;height:38px;cursor:pointer;font-size:16px;display:grid;place-items:center;transition:border-color .15s,color .15s}
+.tgl:hover{color:var(--amber);border-color:var(--amber)}
+h1{font-family:"Archivo",sans-serif;font-weight:900;letter-spacing:-.025em;font-size:clamp(30px,5.4vw,50px);line-height:1.0;margin:.3em 0 .28em;text-wrap:balance;max-width:16ch}
+.sub{color:var(--ink2);font-size:16px;max-width:60ch;margin:0}
+
+.selbar{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.selinner{display:flex;align-items:center;gap:14px;padding:11px 0}
+.sellbl{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);flex:none}
+.pills{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;padding-bottom:2px}
+.pills::-webkit-scrollbar{height:5px}.pills::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
+.pill-c{flex:none;border:1px solid var(--line);background:var(--panel);color:var(--ink2);border-radius:999px;padding:6px 13px;font-family:"IBM Plex Mono",monospace;font-size:12px;cursor:pointer;transition:all .14s;white-space:nowrap}
+.pill-c:hover{border-color:var(--amber);color:var(--ink)}
+.pill-c.on{background:var(--amber);border-color:var(--amber);color:#fff;font-weight:600;box-shadow:0 4px 13px -4px color-mix(in srgb,var(--amber) 65%,transparent)}
+:root[data-theme="dark"] .pill-c.on{color:#131922}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill-c.on{color:#131922}}
+.pill-c .sdot{display:none;width:5px;height:5px;border-radius:50%;background:var(--good);margin-left:6px;vertical-align:middle}
+.pill-c.saver .sdot{display:inline-block}
+.pill-c.on.saver .sdot{background:#fff}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0 4px}
+@media(max-width:760px){.kpis{grid-template-columns:1fr 1fr}}
+.kpi{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:16px 16px 15px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;height:3px;width:100%;background:var(--accent,var(--amber));opacity:.85}
+.kpi .kl{font-size:11.5px;color:var(--ink2)}
+.kpi .kv{font-family:"Archivo";font-weight:800;font-size:clamp(20px,3.4vw,27px);letter-spacing:-.02em;margin:7px 0 3px;font-variant-numeric:tabular-nums;line-height:1.05}
+.kpi .ks{font-size:11.5px;color:var(--ink2)}
+.kpi.c-bal{--accent:var(--cyan)}.kpi.c-out{--accent:var(--bad)}.kpi.c-top{--accent:var(--amber)}.kpi.c-hab{--accent:var(--good)}
+.kpi .kv.neg{color:var(--bad)}
+.kpi{transition:transform .16s ease,box-shadow .16s ease}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(20,30,45,.06),0 16px 34px -14px rgba(20,30,45,.28)}
+.mo,.hb,.qcard{transition:transform .16s ease,box-shadow .16s ease}
+.mo:hover,.hb:hover{transform:translateY(-2px)}
+
+/* generic card + editor */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.card .ch{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.card .ch h3{font-family:"Archivo";font-size:15px;margin:0}
+.card .ch .csub{font-size:12.5px;color:var(--ink2)}
+.assume{font-size:11px;color:var(--amber);border:1px solid var(--amber);border-radius:6px;padding:2px 7px;font-family:"IBM Plex Mono",monospace}
+.linkbtn{background:none;border:none;color:var(--amber);font-size:12px;cursor:pointer;font-family:"IBM Plex Mono",monospace;padding:2px 4px}
+.linkbtn:hover{text-decoration:underline}
+.tedit{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;background:var(--line2)}
+.te{background:var(--panel);padding:11px 13px}
+.te label{font-size:11px;color:var(--ink2);display:block;margin-bottom:5px}
+.te .un{font-size:10.5px;color:var(--ink2)}
+.te input{width:100%;border:1px solid var(--line);background:var(--panel2);color:var(--amber);border-radius:7px;
+  padding:6px 8px;font-family:"IBM Plex Mono",monospace;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.te input:focus{outline:2px solid var(--amber);outline-offset:0;border-color:var(--amber)}
+.fixed-row{display:flex;flex-wrap:wrap;gap:14px 22px;padding:12px 18px;border-top:1px solid var(--line2);font-size:13px;color:var(--ink2);align-items:center}
+.fixed-row .fx{display:flex;align-items:center;gap:7px}
+.fixed-row input{width:74px;border:1px solid var(--line);background:var(--panel2);color:var(--amber);border-radius:6px;padding:4px 7px;font-family:"IBM Plex Mono",monospace;font-weight:600;text-align:right}
+.calib{font-size:12px;padding:8px 18px;border-top:1px solid var(--line2);color:var(--ink2)}
+.calib b{font-family:"IBM Plex Mono",monospace}
+
+section{padding:40px 0 6px}
+.ey{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.ey::after{content:"";height:1px;flex:1;background:linear-gradient(90deg,var(--line),transparent);margin-left:4px}
+.num{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;color:#fff;background:linear-gradient(160deg,var(--amber),color-mix(in srgb,var(--amber) 72%,#000));width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;box-shadow:0 4px 12px -5px color-mix(in srgb,var(--amber) 70%,transparent)}
+:root[data-theme="dark"] .num{color:#131922}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .num{color:#131922}}
+h2{font-family:"Archivo";font-weight:700;font-size:23px;margin:0;letter-spacing:-.01em}
+.lead{color:var(--ink2);margin:.4em 0 1.3em;max-width:72ch}
+
+.months{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.mo{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
+.mo .m{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--ink2)}
+.mo .v{font-family:"Archivo";font-weight:700;font-size:22px;margin-top:3px}
+.mo .u{font-size:11px;color:var(--ink2)}
+.mo.tag-light{border-color:var(--cyan);box-shadow:inset 0 0 0 1px var(--cyan),var(--shadow)}
+.mo.tag-heavy{border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber),var(--shadow)}
+.mo .badge{display:inline-block;margin-top:8px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-family:"IBM Plex Mono",monospace;padding:2px 7px;border-radius:5px}
+.mo.tag-light .badge{background:var(--cyan-soft);color:var(--cyan)}
+.mo.tag-heavy .badge{background:var(--amber-soft);color:var(--amber)}
+.latechip{margin-top:14px;background:var(--panel2);border:1px dashed var(--line);border-radius:11px;padding:12px 15px;font-size:13.5px;display:flex;gap:10px;align-items:baseline}
+.latechip b{color:var(--amber);font-family:"IBM Plex Mono",monospace}
+
+.chartcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 8px;box-shadow:var(--shadow)}
+.clegend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);padding:2px 4px 14px}
+.clegend i{width:15px;height:0;border-top:3px solid var(--cyan);display:inline-block;vertical-align:middle;margin-right:6px}
+.clegend i.dash{border-top:3px dashed var(--bad)}
+.clegend .mk{width:9px;height:9px;border-radius:50%;border:2px solid var(--amber);background:var(--panel);border-top-width:2px}
+.clegend .ro{width:9px;height:9px;border-radius:50%;background:var(--bad)}
+.cw{position:relative;width:100%;overflow-x:auto;transition:opacity .18s}
+canvas{display:block;width:100%;height:auto}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-family:"IBM Plex Mono",monospace;font-size:11.5px;padding:6px 9px;border-radius:7px;opacity:0;transition:opacity .1s;white-space:nowrap;transform:translate(-50%,-115%);z-index:5}
+.note{font-size:12.5px;color:var(--ink2);margin-top:10px;padding-left:2px}
+
+details.ledger{margin-top:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);box-shadow:var(--shadow)}
+details.ledger>summary{cursor:pointer;padding:13px 18px;font-size:13.5px;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details.ledger>summary::-webkit-details-marker{display:none}
+details.ledger>summary .chev{color:var(--ink2);font-family:"IBM Plex Mono",monospace;font-size:12px}
+details.ledger[open]>summary{border-bottom:1px solid var(--line2)}
+.ledtools{display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--line2);flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;transition:all .13s}
+.btn:hover{border-color:var(--amber);color:var(--amber)}
+.ledwrap{max-height:360px;overflow:auto}
+.exportpanel{display:none;padding:12px 18px;border-bottom:1px solid var(--line2)}
+.exportpanel textarea{width:100%;height:150px;font-family:"IBM Plex Mono",monospace;font-size:11px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--ink);padding:10px;resize:vertical}
+
+table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:560px;background:var(--panel)}
+th,td{padding:9px 13px;text-align:right;border-bottom:1px solid var(--line2)}
+th{background:var(--panel2);font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2);position:sticky;top:0;z-index:1}
+th:first-child,td:first-child{text-align:left}
+td{background:var(--panel);color:var(--ink)}          /* explicit — never transparent */
+td.mono{font-family:"IBM Plex Mono",monospace}
+tbody tr:nth-child(even) td{background:var(--panel2)}  /* zebra */
+tbody tr.rc td{background:var(--amber-soft)}
+
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:660px){.qgrid{grid-template-columns:1fr}}
+.qcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
+.qcard .q{font-size:13px;color:var(--ink2);min-height:2.6em}
+.qcard .big{font-family:"Archivo";font-weight:800;font-size:29px;margin:6px 0 2px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.qcard .big.bad{color:var(--bad)}.qcard .big.amber{color:var(--amber)}
+.qcard .cap{font-size:12px;color:var(--ink2)}
+.ctrl{display:flex;flex-direction:column;gap:4px;margin:14px 0 2px}
+.ctrl .cr{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--ink2)}
+.ctrl .cr b{font-family:"IBM Plex Mono",monospace;color:var(--amber)}
+.ctrl input[type=range]{width:100%;accent-color:var(--amber)}
+.ctrl input[type=date]{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:7px;padding:5px 8px;font-family:"IBM Plex Mono",monospace;font-size:13px}
+.brk{margin-top:14px;border-top:1px solid var(--line2);padding-top:12px;display:grid;gap:7px}
+.brk .row{display:flex;justify-content:space-between;font-size:13px}
+.brk .row .mono{color:var(--ink)}
+.brk .row.tot{border-top:1px dashed var(--line);padding-top:8px;margin-top:4px;font-weight:600}
+.brk .row.net{color:var(--amber)}.brk .row.net .mono{color:var(--amber);font-weight:600}
+.brk .lbl{color:var(--ink2)}
+
+.verdict{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--good);border-radius:12px;padding:18px 20px;margin-bottom:18px;box-shadow:var(--shadow)}
+.verdict .tag{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--good)}
+.verdict .amt{font-family:"Archivo";font-weight:800;font-size:25px;letter-spacing:-.02em}
+.verdict p{margin:0;font-size:13px;color:var(--ink2);flex:1;min-width:220px}
+.hbars{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:8px}
+@media(max-width:560px){.hbars{grid-template-columns:1fr}}
+.hb{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
+.hb h4{font-family:"Archivo";margin:0 0 2px;font-size:15px}
+.hb .who{font-size:12px;color:var(--ink2);margin-bottom:12px}
+.stk{display:flex;height:16px;border-radius:5px;overflow:hidden;border:1px solid var(--line2)}
+.stk i{display:block;height:100%;transition:width .3s}
+.stk .e{background:var(--cyan)}.stk .v{background:var(--amber)}.stk .f{background:var(--bad)}
+.hb .kv{margin-top:12px;display:grid;gap:5px;font-size:12.5px}
+.hb .kv div{display:flex;justify-content:space-between}
+.hb .kv .mono{color:var(--ink)}
+.sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin-top:20px;box-shadow:var(--shadow)}
+#alltable tbody tr{cursor:pointer}
+tbody td{transition:background .12s}
+tbody tr.save td{background:var(--good-soft)}
+tbody tr.sel td{background:var(--amber-soft);box-shadow:inset 3px 0 0 var(--amber)}
+tbody tr.sel td:first-child{color:var(--amber);font-weight:700}
+tbody tr:hover td{background:var(--line2)}
+.pill{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:2px 8px;border-radius:20px}
+.pill.eq{background:var(--panel2);color:var(--ink2)}.pill.save{background:var(--good-soft);color:var(--good);font-weight:600}
+
+footer{margin-top:44px;border-top:1px solid var(--line);padding:26px 0 46px;color:var(--ink2);font-size:12.5px}
+.rule-cite{font-family:"IBM Plex Mono",monospace;color:var(--amber);font-size:11px}
+.kbd{font-family:"IBM Plex Mono",monospace;font-size:11px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;color:var(--ink2);background:var(--panel2)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header><div class="wrap head">
+  <div class="toprow">
+    <div class="kicker">P10 &middot; Prepaid Meter Recharge Advisor</div>
+    <button class="tgl" id="tgl" title="Toggle light / dark" aria-label="Toggle theme">&#9681;</button>
+  </div>
+  <h1>The living meter advisor</h1>
+  <p class="sub">A slab-billing engine running live in your browser over 25 households. Edit the
+  tariff, drag the forecast, and every balance, bill and comparison recomputes instantly. Pick a
+  household to begin &mdash; <span class="kbd">&larr;</span> <span class="kbd">&rarr;</span> to switch.</p>
+</div></header>
+
+<div class="selbar"><div class="wrap selinner">
+  <span class="sellbl">Household</span><div class="pills" id="pills"></div>
+</div></div>
+
+<div class="wrap">
+  <div class="kpis">
+    <div class="kpi c-bal"><div class="kl">Balance today</div><div class="kv" id="k-bal">&mdash;</div><div class="ks" id="k-bals"></div></div>
+    <div class="kpi c-out"><div class="kl">Runs out on</div><div class="kv" id="k-out">&mdash;</div><div class="ks" id="k-outs"></div></div>
+    <div class="kpi c-top"><div class="kl">Top-up to target</div><div class="kv" id="k-top">&mdash;</div><div class="ks" id="k-tops"></div></div>
+    <div class="kpi c-hab"><div class="kl">Cheaper habit</div><div class="kv" id="k-hab">&mdash;</div><div class="ks" id="k-habs"></div></div>
+  </div>
+
+  <div class="card" style="margin-top:22px">
+    <div class="ch"><div><h3>Tariff &mdash; editable, live</h3>
+      <div class="csub">Monthly cumulative slabs (BDT per unit). Change any figure; the whole page recomputes.</div></div>
+      <div style="display:flex;gap:6px;align-items:center"><span class="assume" id="tflag">ASSUMED</span>
+      <button class="linkbtn" id="treset">reset</button></div></div>
+    <div class="tedit" id="tedit"></div>
+    <div class="fixed-row">
+      <span class="fx">Demand charge <input id="t-demand" type="number" step="1" min="0">/mo</span>
+      <span class="fx">Meter rent <input id="t-rent" type="number" step="1" min="0">/mo</span>
+      <span class="fx">VAT <input id="t-vat" type="number" step="0.5" min="0">%</span>
+      <span style="color:var(--ink2)">taken on the <b>first recharge</b> of each month</span>
+    </div>
+    <div class="calib" id="calib"></div>
+  </div>
+
+  <section>
+    <div class="ey"><span class="num">1</span><h2>The household</h2></div>
+    <p class="lead" id="item1lead"></p>
+    <div class="months" id="months"></div>
+    <div class="latechip" id="latechip"></div>
+  </section>
+
+  <section>
+    <div class="ey"><span class="num">2</span><h2>Balance, reconstructed</h2></div>
+    <p class="lead">Each day's units are charged at the slab the month's running total has reached;
+    demand charge and meter rent are deducted on the first recharge of every month; VAT rides on
+    top. The solid line is history; the dashed line projects today's balance forward at the usual
+    daily use until it hits zero.</p>
+    <div class="chartcard">
+      <div class="clegend">
+        <span><i></i>Balance (history)</span>
+        <span><i class="dash"></i>Projection to run-out</span>
+        <span><i class="mk"></i>Recharge</span>
+        <span><i class="ro"></i>Run-out</span></div>
+      <div class="cw" id="cw"><canvas id="chart" width="1760" height="600"></canvas><div class="tip" id="tip"></div></div>
+    </div>
+    <p class="note" id="chartnote"></p>
+    <details class="ledger" id="ledgerbox">
+      <summary><span>Day-by-day ledger &mdash; the full rebuild</span><span class="chev" id="ledchev">show &#9662;</span></summary>
+      <div class="ledtools">
+        <button class="btn" id="expcsv">Export CSV</button>
+        <button class="btn" id="expjson">Export JSON</button>
+        <span class="note" style="margin:0">Sandboxed pages can't download &mdash; the panel gives you copyable text.</span>
+      </div>
+      <div class="exportpanel" id="exportpanel"><textarea id="exparea" readonly></textarea>
+        <div style="margin-top:8px"><button class="btn" id="expcopy">Copy to clipboard</button>
+          <span class="note" id="expmsg" style="margin-left:8px"></span></div></div>
+      <div class="ledwrap"><table id="ledtable"><thead><tr>
+        <th>Date</th><th>Units</th><th>Cum</th><th>Recharge</th><th>Fixed</th><th>Energy</th><th>VAT</th><th>Balance</th>
+      </tr></thead><tbody></tbody></table></div>
+    </details>
+  </section>
+
+  <section>
+    <div class="ey"><span class="num">3</span><h2>The family's two questions</h2></div>
+    <p class="lead">Live from today's reconstructed balance. Drag the daily-use slider or pick a new
+    target date &mdash; the answers move with you.</p>
+    <div class="qgrid">
+      <div class="qcard">
+        <div class="q">At this daily use and no further recharges, when does the balance run out?</div>
+        <div class="big bad" id="q1date">&mdash;</div><div class="cap" id="q1cap"></div>
+        <div class="ctrl"><div class="cr"><span>Usual daily use</span><b><span id="usualv"></span> units/day</b></div>
+          <input type="range" id="usual" min="1" max="60" step="1"></div>
+      </div>
+      <div class="qcard">
+        <div class="q">To last until the target date, how much must be recharged today &mdash; and what is it made of?</div>
+        <div class="big amber" id="q2amt">&mdash;</div><div class="cap" id="q2cap"></div>
+        <div class="ctrl"><div class="cr"><span>Target date</span>
+          <button class="linkbtn" id="tgtreset">reset</button></div>
+          <input type="date" id="target"></div>
+        <div class="brk" id="q2brk"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="ey"><span class="num">4</span><h2>Which habit costs less</h2></div>
+    <p class="lead">Same three months, same daily consumption, same opening balance &mdash; only the
+    recharge timing differs. <b>Low&#8209;balance</b> tops up whenever the balance dips below the
+    threshold; <b>monthly</b> tops up on the 1st. Cost is what the meter <i>consumes</i>
+    (energy + VAT + the fixed charges that actually fire), not what is deposited.</p>
+    <div class="verdict" id="verdict"></div>
+    <div class="hbars" id="hbars"></div>
+    <p class="note">Because consumption and the slab counter are identical, energy and VAT are
+    identical to the paisa. The only lever is how many months trigger a first&#8209;recharge fixed
+    charge <span class="rule-cite">R&#8209;16</span>. Rows below are clickable; totals track the tariff above.</p>
+    <div class="tblwrap"><table id="alltable"><thead><tr><th>Case</th><th>Low&#8209;balance</th><th>Monthly</th>
+      <th>Difference</th><th>Fixed months</th><th>Cheaper</th></tr></thead><tbody></tbody></table></div>
+    <p class="note" id="tblnote"></p>
+  </section>
+
+  <footer>
+    <b>Method.</b> The identical engine that produced these figures in Python now runs client-side and was
+    cross-checked to the paisa (475 assertions, 0 mismatches). <b>Cost = energy + VAT + applicable monthly
+    fixed charges</b> <span class="rule-cite">R&#8209;33</span>, never the deposit. Equal results are
+    legitimate <span class="rule-cite">R&#8209;16</span>. The tariff is an explicit, editable assumption &mdash;
+    the dataset ships without one.
+  </footer>
+</div>
+
+<script>
+/* ==================================================================
+   P10 in-browser engine — faithful port of meter.py.
+   Pure functions; a `tariff` object is passed in so the UI can edit it
+   and recompute everything live.
+     tariff = { slabs:[[75,4.63],...,[null,12.63]], demand, rent, vat(%) }
+   ================================================================== */
+(function (root) {
+  "use strict";
+
+  // ---- date helpers (UTC, no timezone drift) ----
+  function toUTC(s){ const [y,m,d]=s.split("-").map(Number); return Date.UTC(y,m-1,d); }
+  function fromUTC(ms){ const d=new Date(ms); const p=n=>String(n).padStart(2,"0");
+    return d.getUTCFullYear()+"-"+p(d.getUTCMonth()+1)+"-"+p(d.getUTCDate()); }
+  const DAY=86400000;
+  function addDays(s,n){ return fromUTC(toUTC(s)+n*DAY); }
+  function ym(s){ return s.slice(0,7); }
+  function daysInMonth(y,m){ return new Date(Date.UTC(y,m,0)).getUTCDate(); } // m=1..12
+  function lastDay(s){ const [y,m]=s.split("-").map(Number); return daysInMonth(y,m); }
+
+  // ---- build the concrete day list from compact inputs ----
+  function buildDays(c){
+    const out=new Array(c.units.length);
+    for(let i=0;i<c.units.length;i++) out[i]={date:addDays(c.start,i),units:c.units[i]};
+    return out;
+  }
+  function rechargeMap(c){
+    const m={}; c.rec.forEach(([d,a])=>{(m[d]=m[d]||[]).push(a);}); return m;
+  }
+
+  // ---- energy across cumulative monthly slabs (true marginal billing) ----
+  function energyForUnits(cumBefore,n,slabs){
+    let cost=0,pos=cumBefore,rem=n;
+    for(const [upper,rate] of slabs){
+      if(rem===0) break;
+      const cap = (upper===null)?Infinity:upper;
+      if(pos>=cap) continue;
+      const take=Math.min(rem,cap-pos);
+      cost+=take*rate; pos+=take; rem-=take;
+    }
+    return cost;
+  }
+
+  // ================= ITEM 2: rebuild balance day by day ==============
+  function rebuild(c,T){
+    const vat=T.vat/100, fixedM=T.demand+T.rent, slabs=T.slabs;
+    const days=buildDays(c), rc=rechargeMap(c);
+    let bal=c.opening, cum=0, curM=null; const doneMonths={};
+    const ledger=[];
+    for(const row of days){
+      const d=row.date, n=row.units, mo=ym(d);
+      if(mo!==curM){ curM=mo; cum=0; }
+      let recharged=0, fixedTaken=0; const events=[];
+      const amts=rc[d];
+      if(amts) for(const amt of amts){
+        bal+=amt; recharged+=amt;
+        if(!doneMonths[curM]){
+          const f=fixedM, fv=f*vat; bal-=(f+fv); fixedTaken+=(f+fv);
+          doneMonths[curM]=1; events.push("recharge "+amt+" (+fixed)");
+        } else events.push("recharge "+amt);
+      }
+      const energy=energyForUnits(cum,n,slabs), evat=energy*vat;
+      bal-=(energy+evat); cum+=n;
+      ledger.push({date:d,units:n,cum:cum,recharge:recharged,fixed:fixedTaken,
+                   energy:energy,evat:evat,balance:bal});
+    }
+    return ledger;
+  }
+
+  // project future days (usual daily units); returns {rows, ...}
+  function project(startBal,startDate,daily,cumStart,slabs,vat,stopDate){
+    let bal=startBal,cum=cumStart,curM=ym(startDate),d=startDate;
+    const rows=[];
+    for(let guard=0;guard<4000;guard++){
+      d=addDays(d,1);
+      if(ym(d)!==curM){ curM=ym(d); cum=0; }
+      const energy=energyForUnits(cum,daily,slabs), evat=energy*vat;
+      bal-=(energy+evat); cum+=daily;
+      rows.push({date:d,energy:energy,evat:evat,balance:bal});
+      if(stopDate){ if(d>=stopDate) break; }
+      else { if(bal<0) break; }
+    }
+    return rows;
+  }
+
+  // ================= ITEM 3: two questions ===========================
+  // opts may override {usual, target}
+  function item3(c,ledger,T,opts){
+    opts=opts||{};
+    const vat=T.vat/100, slabs=T.slabs, firstRate=slabs[0][1];
+    const daily=opts.usual!=null?opts.usual:c.usual;
+    const target=opts.target||c.target;
+    const last=ledger[ledger.length-1];
+    const balToday=last.balance, cumToday=last.cum, today=last.date;
+
+    // Q1 run-out
+    const proj=project(balToday,today,daily,cumToday,slabs,vat,null);
+    const runout=proj.length?proj[proj.length-1].date:today;
+    const lastOk=proj.length>=2?proj[proj.length-2].date:today;
+
+    // Q2 bill to target
+    let bill=[], gross=0;
+    if(target>today){
+      bill=project(0,today,daily,cumToday,slabs,vat,target);
+    }
+    const totEnergy=bill.reduce((s,x)=>s+x.energy,0);
+    const totEvat=bill.reduce((s,x)=>s+x.evat,0);
+    const nDays=bill.length, totUnits=daily*nDays;
+    const eBase=totUnits*firstRate, uplift=totEnergy-eBase;
+    // did a recharge already happen in today's month?
+    const tMonth=ym(today);
+    const rechargedThisMonth=ledger.some(l=>ym(l.date)===tMonth && l.recharge>0);
+    const tookFixed=!rechargedThisMonth;
+    const fixed=tookFixed?(T.demand+T.rent):0, fixedVat=fixed*vat;
+    const totVat=totEvat+fixedVat;
+    gross=totEnergy+fixed+totVat;
+    const required=Math.max(0,gross-balToday);
+
+    return {balToday,runout,lastOk,today,target,daily,daysToTarget:nDays,
+      gross,eBase,uplift,fixed:fixed+fixedVat,vat:totVat,required,tookFixed,
+      runoutProj:proj};
+  }
+
+  // ================= ITEM 4: habit comparison ========================
+  function runHabit(c,habit,T){
+    const vat=T.vat/100, fixedM=T.demand+T.rent, slabs=T.slabs;
+    const months=new Set(c.cmp.months);
+    const days=buildDays(c).filter(r=>months.has(ym(r.date)));
+    let bal=c.cmp.opening, cum=0, curM=null; const fixedMonths={};
+    let tE=0,tV=0,tF=0,nR=0,fxCount=0;
+    for(const row of days){
+      const d=row.date,n=row.units,mo=ym(d);
+      if(mo!==curM){ curM=mo; cum=0; }
+      let doRec=false,amt=0;
+      if(habit==="monthly"){ if(Number(d.slice(8,10))===1){ doRec=true; amt=c.cmp.mon_amt; } }
+      else { if(bal<c.cmp.low_thr){ doRec=true; amt=c.cmp.low_amt; } }
+      if(doRec){
+        bal+=amt; nR++;
+        if(!fixedMonths[curM]){ const f=fixedM,fv=f*vat; bal-=(f+fv); tF+=(f+fv);
+          fixedMonths[curM]=1; fxCount++; }
+      }
+      const energy=energyForUnits(cum,n,slabs), evat=energy*vat;
+      bal-=(energy+evat); cum+=n; tE+=energy; tV+=evat;
+    }
+    return {energy:tE,evat:tV,fixed:tF,cost:tE+tV+tF,fixedMonths:fxCount,nRecharges:nR,endBal:bal};
+  }
+  function item4(c,T){
+    const low=runHabit(c,"low",T), monthly=runHabit(c,"monthly",T);
+    const diff=monthly.cost-low.cost;
+    const cheaper=diff>1e-6?"low-balance":(diff<-1e-6?"monthly":"equal");
+    return {low,monthly,cheaper,absDiff:Math.abs(diff),months:c.cmp.months,params:c.cmp};
+  }
+
+  // ================= ITEM 1: profile =================================
+  function item1(c){
+    const days=buildDays(c); const mu={},md={};
+    for(const r of days){ const k=ym(r.date); mu[k]=(mu[k]||0)+r.units; md[k]=(md[k]||0)+1; }
+    const full={}; for(const k in mu){ full[k]=(md[k]===lastDay(k+"-01")); }
+    const fm=Object.keys(mu).filter(k=>full[k]);
+    let light=fm[0],heavy=fm[0];
+    for(const k of fm){ if(mu[k]<mu[light]) light=k; if(mu[k]>mu[heavy]) heavy=k; }
+    let lateD=null,lateA=0;
+    for(const [d,a] of c.rec){ if(Number(d.slice(8,10))>=lastDay(d)-6 && a>lateA){ lateA=a; lateD=d; } }
+    return {mu,full,light,heavy,late:[lateD,lateD?lateA:null]};
+  }
+
+  root.P10 = {energyForUnits,rebuild,project,item1,item3,item4,runHabit,
+              util:{addDays,ym,lastDay,buildDays}};
+})(typeof module!=="undefined"?module.exports:(window.__P10ROOT__={}));
+if(typeof window!=="undefined") window.P10 = window.__P10ROOT__.P10;
+
+</script>
+<script id="rawdata" type="application/json">{"cases":[{"id":"PUB-01","opening":310.0,"start":"2026-01-01","units":[3,4,5,5,4,5,6,5,3,3,4,4,4,5,2,5,6,4,5,3,4,4,4,3,4,4,3,5,5,4,4,6,5,4,5,5,6,2,5,5,6,6,7,6,5,7,6,7,5,6,5,7,5,6,6,8,5,4,5,9,8,11,10,8,9,7,12,12,7,9,9,8,6,5,8,10,12,7,11,12,9,7,3,8,9,9,11,8,11,10,13,20,16,18,13,17,16,14,19,11,12,14,17,13,16,14,17,12,14,13,18,15,10,14,13,8,9,9,19,10,27,11,13,19,19,18,31,16,26,24,15,28,20,24,22,23,19,19,12,31,23,19,28,25,23,28,19,27,23,27,14,19,21,16,23,18,11,25,29,21,8,29,31,22,18,14,18,19,22,28,12,12,14,18,25,18,18,21,18,21,14],"rec":[["2026-01-09",300.0],["2026-01-19",300.0],["2026-01-30",300.0],["2026-02-07",400.0],["2026-02-18",300.0],["2026-02-25",400.0],["2026-03-06",400.0],["2026-03-12",400.0],["2026-03-19",700.0],["2026-04-01",900.0],["2026-04-11",900.0],["2026-04-21",800.0],["2026-04-30",600.0],["2026-05-05",1600.0],["2026-05-17",2000.0],["2026-05-26",4300.0],["2026-06-25",900.0],["2026-06-29",1300.0]],"today":"2026-06-30","usual":19,"target":"2026-08-13","cmp":{"months":["2026-04","2026-05","2026-06"],"opening":0.0,"low_thr":200.0,"low_amt":5000.0,"mon_amt":2000.0}},{"id":"PUB-02","opening":692.0,"start":"2026-02-01","units":[6,3,6,2,5,3,8,5,3,5,6,7,4,4,6,4,6,4,1,5,5,4,5,5,3,5,5,5,9,9,10,9,8,9,9,6,6,7,11,10,11,9,7,12,8,8,5,10,7,9,5,7,9,9,5,8,9,5,8,15,17,14,13,11,9,13,12,13,14,5,17,11,13,13,9,13,11,7,17,10,14,11,11,9,11,11,15,11,18,15,19,21,18,29,15,13,19,27,18,19,23,20,26,21,21,21,23,32,26,17,23,34,24,28,22,18,21,15,21,22,12,21,24,16,13,19,22,16,28,19,22,10,16,21,17,15,19,14,14,14,30,22,18,13,22,15,20,20,22,16,19,18,17,19,11,15,17,18,17,17,18,16,7,14,7,16,14,17,17,18,17,17,14,12,14,17,10,15,10,13,18,15,11,12,13,14,10,12,17,16,11,10,13,7,8,9,13,19,16,17,15,19,21,18,16,12,14,11,13,17,13,15,15,7,14,7,10,11,7,16,9,12,6,15,9,7],"rec":[["2026-02-24",300.0],["2026-03-04",300.0],["2026-03-08",500.0],["2026-03-17",400.0],["2026-03-25",400.0],["2026-04-01",500.0],["2026-04-08",900.0],["2026-04-20",400.0],["2026-04-24",900.0],["2026-05-05",2400.0],["2026-05-22",2400.0],["2026-06-01",1600.0],["2026-06-16",1000.0],["2026-06-23",1800.0],["2026-06-30",3800.0],["2026-08-17",900.0],["2026-08-25",900.0],["2026-09-03",300.0],["2026-09-07",400.0],["2026-09-13",300.0]],"today":"2026-09-14","usual":10,"target":"2026-10-20","cmp":{"months":["2026-06","2026-07","2026-08"],"opening":0.0,"low_thr":200.0,"low_amt":5000.0,"mon_amt":2500.0}},{"id":"PUB-03","opening":426.0,"start":"2025-12-01","units":[4,3,3,3,5,6,4,4,4,6,4,6,4,8,4,6,5,5,5,5,5,4,4,3,4,4,5,5,5,4,4,4,3,5,8,4,7,6,5,4,5,5,4,3,5,6,5,5,6,6,4,5,3,6,5,3,7,3,3,4,4,6,5,1,5,4,7,5,7,3,4,6,5,6,7,5,3,5,8,10,6,5,6,5,6,8,5,4,4,5,7,11,9,10,11,5,8,10,12,9,12,13,12,13,10,8,16,8,10,11,12,10,6,10,10,7,13,9,9,10,9,19,10,11,17,21,16,13,17,16,21,14,13,11,18,12,15,16,14,14,22,11,23,10,13,17,18,14,17,22,21,17,16,20,27,26,13,28,18,31,28,16,31,25,33,33,29,13,18,25,27,21,35,17,24,39,31,22,20,30,31,21,25,17,23,26,16,15,24,19,33,21,27,26,23,12,28,16,24,22,23,21,20,30,26,30,26,21,18,19,22,13],"rec":[["2025-12-15",300.0],["2025-12-22",300.0],["2026-01-01",300.0],["2026-01-09",400.0],["2026-01-22",300.0],["2026-01-31",400.0],["2026-02-13",400.0],["2026-02-23",300.0],["2026-03-02",600.0],["2026-03-13",700.0],["2026-03-23",400.0],["2026-03-27",5000.0],["2026-05-14",1900.0],["2026-05-23",2800.0],["2026-06-02",1200.0],["2026-06-11",1500.0],["2026-06-21",1100.0],["2026-06-25",1900.0]],"today":"2026-06-30","usual":22,"target":"2026-07-27","cmp":{"months":["2026-04","2026-05","2026-06"],"opening":0.0,"low_thr":150.0,"low_amt":1000.0,"mon_amt":1500.0}},{"id":"PUB-04","opening":1165.0,"start":"2026-01-01","units":[3,4,3,3,5,3,5,5,4,5,4,3,5,2,2,4,3,4,4,6,5,5,5,6,5,3,3,5,5,4,2,6,7,4,4,6,4,5,6,6,6,5,6,6,7,4,5,7,5,6,2,5,5,6,6,6,5,7,5,9,3,10,9,6,5,8,9,9,9,8,9,9,8,8,10,12,7,11,11,9,7,9,11,8,10,7,8,3,8,8,11,13,10,8,12,17,11,14,12,9,14,18,15,10,14,15,11,17,13,14,12,15,9,8,6,14,14,13,13,20,15,21,14,23,30,25,18,28,15,10,14,30,17,19,11,15,14,19,29,21,21,16,24,20,25,22,20,30,15,19,25,17,17,17,18,14,28,22,15,21,26,15,17,12,23,21,17,21,14,18,27,18,23,17,15,16,24,14,15,21,19],"rec":[["2026-02-15",300.0],["2026-02-23",300.0],["2026-03-02",600.0],["2026-03-15",600.0],["2026-03-25",400.0],["2026-04-01",600.0],["2026-04-09",900.0],["2026-04-20",600.0],["2026-04-28",3000.0],["2026-05-24",2200.0],["2026-06-03",1400.0],["2026-06-16",800.0],["2026-06-22",1800.0]],"today":"2026-06-30","usual":19,"target":"2026-07-26","cmp":{"months":["2026-04","2026-05","2026-06"],"opening":0.0,"low_thr":200.0,"low_amt":3000.0,"mon_amt":2000.0}},{"id":"PUB-05","opening":292.0,"start":"2025-12-01","units":[6,5,3,4,4,6,5,3,5,4,5,3,4,5,6,5,3,3,3,4,4,5,3,3,3,3,4,5,6,5,5,5,5,5,5,5,3,5,5,4,4,2,6,3,6,4,4,5,4,7,4,5,5,5,4,5,4,2,3,4,4,5,2,6,5,4,4,8,4,6,4,8,6,4,3,6,7,4,3,3,6,7,6,7,4,6,3,5,6,3,7,5,7,9,8,11,13,8,8,11,11,10,5,6,9,6,7,13,10,11,11,6,11,6,4,9,7,7,3,10,8,18,17,16,11,13,11,16,14,12,13,19,19,11,18,12,15,11,14,9,14,5,15,15,10,22,21,12,19,13,14,28,33,24,17,30,14,15,18,33,27,19,30,16,11,26,25,25,27,19,17,16,13,22,29,29,23,12,17,24,28,25],"rec":[["2025-12-08",300.0],["2025-12-18",300.0],["2025-12-29",300.0],["2026-01-06",300.0],["2026-01-17",300.0],["2026-01-25",300.0],["2026-02-04",300.0],["2026-02-12",300.0],["2026-02-21",300.0],["2026-02-28",300.0],["2026-03-07",600.0],["2026-03-18",300.0],["2026-03-22",500.0],["2026-04-01",1100.0],["2026-04-14",800.0],["2026-04-24",600.0],["2026-04-27",5500.0],["2026-05-31",1200.0]],"today":"2026-05-31","usual":22,"target":"2026-07-03","cmp":{"months":["2026-03","2026-04","2026-05"],"opening":0.0,"low_thr":100.0,"low_amt":1000.0,"mon_amt":1500.0}},{"id":"PUB-06","opening":1237.0,"start":"2026-02-01","units":[7,4,6,4,5,6,6,7,6,5,6,5,4,5,6,7,6,7,4,5,7,6,4,5,3,6,5,6,11,7,6,10,6,9,7,8,9,9,11,10,7,9,10,9,7,9,6,7,12,12,8,12,9,7,11,2,10,8,10,10,11,13,14,13,8,13,13,17,17,15,16,16,12,13,12,18,14,18,13,13,14,14,14,15,16,16,13,14,18,26,19,13,23,24,15,23,17,18,15,23,18,22,18,25,20,27,23,14,16,23,31,26,19,22,22,20,16,24,24,23,26,19,22,33,27,17,15,15,18,22,20,21,23,21,15,29,19,16,13,19,9,17,24,18,17,20,13,25,16,13,20,8,11,15,10,19,20,13,12,15,15,13,14,15,10,17,10,10,19,12,17,14,20,16,18,20,16,17,17,23,12,12,11,16,15,6,7,11,20,16,8,15,13,16,11,12,15,17,16,17,20,21,13,18,19,17,18,14,17,16,15,19,11,14,11,13,7,14,19,9,10,15,13,11,16,13,10,16,14,13,13,15,12,13,16,11,15,10,12,13,9,17],"rec":[["2026-03-09",700.0],["2026-03-22",400.0],["2026-03-28",400.0],["2026-04-03",900.0],["2026-04-14",700.0],["2026-04-22",1200.0],["2026-05-02",1300.0],["2026-05-14",2200.0],["2026-05-27",2400.0],["2026-05-31",4400.0],["2026-07-17",1200.0],["2026-07-29",1200.0],["2026-08-09",1400.0],["2026-08-25",800.0],["2026-08-30",900.0],["2026-09-09",800.0],["2026-09-19",900.0],["2026-09-29",900.0]],"today":"2026-09-30","usual":13,"target":"2026-10-25","cmp":{"months":["2026-07","2026-08","2026-09"],"opening":0.0,"low_thr":100.0,"low_amt":5000.0,"mon_amt":2000.0}},{"id":"PUB-07","opening":651.0,"start":"2025-12-01","units":[4,4,5,5,3,5,4,3,4,4,4,4,3,4,6,3,5,3,5,3,4,4,6,4,3,6,3,2,3,2,5,5,3,4,4,4,5,4,4,3,5,5,5,6,4,3,4,5,5,2,5,5,3,5,3,5,4,4,6,5,4,5,6,5,4,5,5,4,6,4,4,5,7,6,5,3,4,6,6,4,5,5,7,7,6,6,6,3,4,5,6,6,9,10,6,8,6,9,12,5,8,5,11,6,10,6,7,7,10,11,10,4,10,7,6,4,13,8,14,6,10,7,14,10,14,13,14,13,12,17,15,14,18,12,10,11,15,12,8,14,11,10,14,13,14,12,13,15,14,14,13,21,20,23,11,20,11,23,24,15,27,23,15,16,14,18,15,26,25,21,26,24,21,18,16,29,33,15,20,26,21,27],"rec":[["2025-12-26",300.0],["2026-01-06",300.0],["2026-01-16",300.0],["2026-01-26",300.0],["2026-02-03",300.0],["2026-02-12",300.0],["2026-02-21",300.0],["2026-02-28",300.0],["2026-03-06",400.0],["2026-03-14",500.0],["2026-03-24",300.0],["2026-03-29",700.0],["2026-03-31",5700.0],["2026-05-29",1800.0]],"today":"2026-05-31","usual":23,"target":"2026-07-13","cmp":{"months":["2026-03","2026-04","2026-05"],"opening":0.0,"low_thr":200.0,"low_amt":2000.0,"mon_amt":2500.0}},{"id":"PUB-08","opening":702.0,"start":"2025-12-01","units":[5,5,4,4,4,5,3,4,6,2,4,3,4,4,2,6,4,2,5,4,4,4,4,4,4,5,3,4,4,5,5,4,1,5,5,4,3,5,4,4,4,2,4,4,4,4,4,5,3,3,3,4,6,3,5,3,4,3,4,2,4,3,3,5,7,7,6,4,4,7,3,5,4,6,5,5,5,6,6,5,6,2,7,6,3,5,7,6,5,5,8,8,7,11,8,5,4,6,6,4,9,8,5,8,6,9,6,9,10,6,7,5,6,9,8,5,10,5,9,9,6,18,18,8,14,22,16,15,13,11,15,15,15,11,17,15,13,7,15,12,10,11,19,16,11,15,11,12,14,18,11,21,17,31,18,19,26,17,27,23,20,23,11,24,24,22,20,19,20,26,13,17,21,22,13,22,14,26,19,20,27,27],"rec":[["2025-12-29",300.0],["2026-01-08",300.0],["2026-01-19",300.0],["2026-01-31",300.0],["2026-02-09",300.0],["2026-02-17",300.0],["2026-02-25",300.0],["2026-03-04",400.0],["2026-03-13",500.0],["2026-03-24",500.0],["2026-04-02",800.0],["2026-04-11",800.0],["2026-04-20",800.0],["2026-04-25",5000.0]],"today":"2026-05-31","usual":20,"target":"2026-07-13","cmp":{"months":["2026-03","2026-04","2026-05"],"opening":0.0,"low_thr":150.0,"low_amt":1000.0,"mon_amt":2500.0}},{"id":"PUB-09","opening":272.0,"start":"2026-01-01","units":[4,5,4,6,5,4,5,5,5,4,6,4,4,5,3,5,5,6,3,3,5,4,4,4,4,4,5,2,4,5,5,6,6,5,4,7,6,4,5,5,6,2,5,7,2,5,3,4,4,5,7,7,3,7,5,4,5,3,5,8,5,9,8,10,4,7,7,12,11,5,6,13,10,9,8,7,7,11,9,5,12,8,9,8,7,11,7,8,9,8,10,11,18,18,5,17,10,10,17,15,12,14,15,12,15,16,15,16,12,12,14,15,11,10,12,16,13,20,14,10,12,24,14,24,24,24,28,24,25,25,20,18,18,10,27,17,23,23,31,13,16,19,11,16,23,20,18,28,16,28,21,18,24,24,17,17,13,15,21,21,12,21,21,20,15,20,18,12,20,18,15,16,23,21,11,17,21,19,22,22,24,17,22,14,15,13,14,20,9,19,21,15,14,14,19,12,17,14,15,17,16,27,17,14,18,16,16,11,21,9,18,11],"rec":[["2026-01-07",300.0],["2026-01-17",300.0],["2026-01-26",300.0],["2026-02-04",300.0],["2026-02-13",300.0],["2026-02-22",300.0],["2026-03-02",500.0],["2026-03-12",700.0],["2026-03-25",600.0],["2026-04-04",1100.0],["2026-04-18",800.0],["2026-04-27",1100.0],["2026-04-28",5000.0],["2026-06-09",1500.0],["2026-06-23",1300.0],["2026-06-29",1600.0],["2026-07-13",1300.0],["2026-07-26",1000.0]],"today":"2026-07-31","usual":16,"target":"2026-08-24","cmp":{"months":["2026-05","2026-06","2026-07"],"opening":0.0,"low_thr":100.0,"low_amt":5000.0,"mon_amt":2500.0}},{"id":"PUB-10","opening":1362.0,"start":"2025-12-01","units":[6,6,3,3,5,5,4,6,6,4,5,3,5,5,5,5,4,5,4,3,4,6,5,4,6,3,6,3,4,4,3,4,7,5,4,3,4,6,3,6,3,4,3,6,4,4,2,4,4,3,5,5,5,5,4,3,5,4,6,5,4,4,4,5,5,4,6,6,8,5,5,6,7,6,5,7,4,6,5,5,7,3,6,5,4,5,4,6,3,5,7,13,9,10,7,5,8,7,7,4,9,8,11,12,12,11,11,8,10,9,8,10,5,7,8,10,10,8,10,12,10,11,14,17,12,5,15,15,21,17,10,18,12,16,14,15,15,15,13,12,14,8,15,13,13,7,14,17,4,16,17,16,26,26,24,24,26,21,28,12,20,25,21,27,18,23,17,36,20,25,30,26,20,26,19,21,22,22,24,19,16,26,25,22,6,26,17,20,22,15,22,12,22,23,20,23,16,14,17,25,20,19,21,20,19,23,10,25,17,18,21,24],"rec":[["2026-01-24",300.0],["2026-02-02",300.0],["2026-02-10",300.0],["2026-02-17",400.0],["2026-03-01",700.0],["2026-03-16",500.0],["2026-03-23",600.0],["2026-04-02",800.0],["2026-04-12",900.0],["2026-04-22",1000.0],["2026-05-03",2100.0],["2026-05-18",2600.0],["2026-05-28",4900.0]],"today":"2026-06-30","usual":20,"target":"2026-08-09","cmp":{"months":["2026-04","2026-05","2026-06"],"opening":0.0,"low_thr":100.0,"low_amt":5000.0,"mon_amt":2000.0}},{"id":"PUB-11","opening":1175.0,"start":"2025-12-01","units":[4,5,6,4,3,4,4,1,3,5,5,5,5,5,5,4,7,6,4,6,5,5,5,5,4,5,6,4,4,4,4,6,6,7,4,7,5,7,5,4,6,6,4,3,6,5,6,7,3,2,4,3,5,6,5,6,5,7,5,6,7,4,4,7,9,7,8,5,7,4,5,4,6,7,7,7,6,6,6,4,10,6,7,6,6,3,8,6,6,5,7,9,10,9,6,8,10,11,7,11,10,9,11,9,11,12,11,13,11,13,7,11,12,8,15,8,12,10,12,12,9,11,19,10,20,16,15,18,25,14,19,14,17,18,17,13,21,20,16,14,20,15,21,14,9,14,22,21,16,11,17,23,36,31,25,31,25,32,29,31,26,22,28,29,33,28,20,34,28,25,23,31,13,29,14,31,20,27,17,25,37,26,34,21,20,29,18,20,23,24,32,29,27,29,17,22,27,21,15,14,24,21,27,27,20,18,28,30,18,20,29,27,21,22,16,25,21,25,9,10,21,25,16,16,22,21,23,32,13,20,17],"rec":[["2026-01-12",400.0],["2026-01-25",300.0],["2026-01-31",400.0],["2026-02-12",300.0],["2026-02-18",300.0],["2026-02-24",300.0],["2026-03-03",600.0],["2026-03-14",600.0],["2026-03-22",600.0],["2026-03-30",800.0],["2026-04-09",1000.0],["2026-04-18",1100.0],["2026-04-27",1100.0],["2026-05-04",2500.0],["2026-05-17",2300.0],["2026-05-26",2300.0],["2026-06-03",1400.0],["2026-06-13",2700.0],["2026-06-27",2200.0],["2026-06-28",4000.0]],"today":"2026-07-19","usual":19,"target":"2026-08-27","cmp":{"months":["2026-04","2026-05","2026-06"],"opening":0.0,"low_thr":100.0,"low_amt":2000.0,"mon_amt":2500.0}},{"id":"PUB-12","opening":1488.0,"start":"2026-01-01","units":[4,2,5,2,3,5,4,5,6,3,3,4,4,2,4,4,4,3,5,4,4,6,3,4,4,4,6,5,1,3,3,5,3,6,5,2,5,4,8,3,6,5,5,5,4,3,3,6,5,4,5,5,7,4,5,7,8,5,4,10,8,4,6,8,8,9,7,7,9,9,8,8,11,6,12,4,11,7,6,7,8,5,10,7,5,10,9,4,8,9,10,15,10,18,19,10,10,13,18,21,14,13,18,11,12,17,15,8,11,10,14,16,12,8,11,17,15,6,12,19,12,15,29,24,20,31,22,9,31,13,23,20,15,14,26,20,18,19,15,29,16,19,22,13,17,17,17,19,9,20,24,18,13,15,17,12,11,16,10,20,14,16,16,9,14,20,13,24,20,24,20,19,22,18,21,13,15,22,17,13,18,18,12,9,23,14,22,14,17,23,9,21,14,10,10,14,9,11,14,11,14,15,19,5,13,16,11,22,11,20,14,23,9,10,9,12,14,12,10,18,19,16,20,17,18,12,15,12,17,16,15,14,11,16,17,12,16,12,16,19,18,13,11],"rec":[["2026-03-02",400.0],["2026-03-11",600.0],["2026-03-22",600.0],["2026-04-03",1000.0],["2026-04-14",600.0],["2026-04-22",1100.0],["2026-05-04",1900.0],["2026-05-19",900.0],["2026-05-24",1400.0],["2026-06-01",1100.0],["2026-06-13",1500.0],["2026-06-25",1200.0],["2026-07-02",1200.0],["2026-07-16",1200.0],["2026-07-29",1100.0],["2026-07-31",3200.0]],"today":"2026-08-31","usual":15,"target":"2026-09-24","cmp":{"months":["2026-06","2026-07","2026-08"],"opening":0.0,"low_thr":200.0,"low_amt":2000.0,"mon_amt":1500.0}},{"id":"PUB-13","opening":494.0,"start":"2026-02-01","units":[8,7,7,7,4,7,6,4,7,8,4,5,5,4,4,5,6,5,4,6,8,4,5,4,7,5,6,7,8,8,10,11,8,7,10,9,11,8,11,6,7,6,8,13,11,7,14,15,6,8,12,11,6,12,13,10,6,7,9,14,15,15,16,15,12,8,14,8,15,15,21,21,14,12,12,17,10,20,25,17,12,10,14,14,20,17,11,13,7,22,21,21,24,26,21,12,25,24,25,20,23,24,29,22,25,26,21,28,21,24,23,28,22,28,29,20,24,20,26,21,19,24,24,15,14,26,19,19,24,14,12,21,11,24,22,20,21,33,20,26,21,25,31,15,17,11,23,21,26,17,16,9,20,19,19,17,17,18,13,23,15,21,12,18,19,18,19,11,20,26,17,17,14,16,19,18,26,23,22,18,15,18,10,11,12,10,21,12,16,22,15,13,17],"rec":[["2026-02-13",300.0],["2026-02-21",300.0],["2026-02-28",300.0],["2026-03-05",500.0],["2026-03-15",800.0],["2026-03-27",700.0],["2026-04-06",800.0],["2026-04-15",600.0],["2026-04-21",900.0],["2026-04-29",1000.0],["2026-05-07",1500.0],["2026-05-18",1500.0],["2026-05-24",1200.0],["2026-05-28",1300.0],["2026-06-03",1100.0],["2026-06-13",1800.0],["2026-06-24",2000.0],["2026-07-06",900.0],["2026-07-14",800.0],["2026-07-21",1300.0],["2026-07-29",1700.0],["2026-07-31",4000.0]],"today":"2026-08-12","usual":15,"target":"2026-08-26","cmp":{"months":["2026-05","2026-06","2026-07"],"opening":0.0,"low_thr":100.0,"low_amt":2000.0,"mon_amt":2500.0}},{"id":"PUB-14","opening":510.0,"start":"2026-02-01","units":[6,6,7,5,6,6,7,5,6,7,5,4,5,6,9,8,7,7,5,4,8,4,5,4,8,5,7,7,13,12,12,9,12,9,8,10,7,9,7,10,9,8,10,9,11,8,7,12,12,11,9,11,11,12,10,11,9,8,11,18,19,22,19,8,15,17,20,16,21,15,15,20,11,14,12,19,18,18,14,15,17,12,12,15,19,9,15,18,16,28,18,14,30,21,26,38,22,22,25,29,22,25,22,18,21,23,27,24,27,29,18,19,33,25,27,32,23,32,23,26,30,15,31,26,13,24,25,19,14,17,22,21,31,27,20,34,31,23,23,17,18,21,22,25,26,26,33,34,27,33,25,16,22,16,19,19,17,26,17,14,18,18,27,24,26,22,21,19,22,23,22,21,19,21,17,25,18,20,16,22,19],"rec":[["2026-02-14",300.0],["2026-02-20",400.0],["2026-03-02",600.0],["2026-03-12",500.0],["2026-03-21",300.0],["2026-03-24",500.0],["2026-03-31",800.0],["2026-04-08",1000.0],["2026-04-18",800.0],["2026-04-26",600.0],["2026-04-30",900.0],["2026-05-06",1800.0],["2026-05-18",3000.0],["2026-05-29",2200.0],["2026-06-10",2800.0],["2026-06-26",2500.0],["2026-06-28",5200.0]],"today":"2026-07-31","usual":20,"target":"2026-08-25","cmp":{"months":["2026-05","2026-06","2026-07"],"opening":0.0,"low_thr":150.0,"low_amt":1500.0,"mon_amt":2000.0}},{"id":"PUB-15","opening":605.0,"start":"2025-12-01","units":[3,4,4,4,3,3,4,5,6,4,4,4,4,4,3,3,4,3,4,4,3,4,5,2,5,5,3,3,4,5,4,3,5,5,3,4,3,6,4,3,3,5,3,3,4,3,4,2,3,1,4,2,4,4,3,4,3,2,3,2,5,3,5,6,4,6,5,5,5,7,3,3,3,4,5,7,5,9,6,3,4,6,4,6,1,6,4,7,5,6,8,7,4,10,3,6,8,12,6,7,7,8,9,8,5,8,11,8,6,8,4,8,9,9,8,8,6,7,7,9,5,11,13,14,13,12,12,9,7,12,16,16,12,5,11,19,11,13,14,13,18,11,11,23,15,10,18,8,17,14,15,10,20,16,22,22,23,20,7,8,16,21,26,16,18,20,24,18,22,30,24,20,17,17,17,14,18,26,16,19,23,18],"rec":[["2025-12-25",300.0],["2026-01-04",300.0],["2026-01-16",300.0],["2026-01-30",300.0],["2026-02-08",300.0],["2026-02-17",300.0],["2026-02-26",300.0],["2026-03-05",300.0],["2026-03-11",600.0],["2026-03-23",500.0],["2026-04-02",1100.0],["2026-04-18",500.0],["2026-04-23",600.0],["2026-04-29",3000.0],["2026-05-24",900.0],["2026-05-29",1700.0]],"today":"2026-05-31","usual":20,"target":"2026-06-20","cmp":{"months":["2026-03","2026-04","2026-05"],"opening":0.0,"low_thr":150.0,"low_amt":1000.0,"mon_amt":1500.0}},{"id":"PUB-16","opening":546.0,"start":"2025-12-01","units":[5,4,3,5,7,6,4,6,5,4,5,3,4,5,8,6,3,6,5,4,4,3,3,4,4,5,4,6,4,6,5,7,4,5,6,6,5,7,5,2,3,6,5,3,5,5,5,6,4,4,4,4,7,3,5,7,6,5,5,5,4,3,6,8,5,5,6,6,8,6,5,5,6,7,5,3,8,4,6,8,6,7,8,6,7,9,5,7,5,6,11,9,10,9,11,10,13,9,10,9,11,13,9,10,6,10,7,12,9,8,8,7,9,8,11,12,11,7,10,11,10,14,26,17,14,15,11,21,16,13,16,17,11,16,17,13,12,15,21,10,17,19,14,15,16,11,19,18,12,18,21,17,21,25,28,19,12,22,34,20,38,18,28,20,18,21,24,20,25,28,18,23,20,24,22,16,32,25,27,25,29,33,16,18,16,26,27,33,17,18,16,21,20,16,20,26,20,17,31,22,24,18,24,23,24,26,21,24,24,21,24,18,22,14,17,18,14,18,23,19,20,21,18,23,22,12,18,19,10,13,21,14,20,15,16,22,15,19,12,22,18,21,16],"rec":[["2025-12-18",400.0],["2025-12-31",300.0],["2026-01-08",300.0],["2026-01-18",300.0],["2026-01-26",300.0],["2026-02-03",400.0],["2026-02-14",300.0],["2026-02-20",300.0],["2026-02-26",300.0],["2026-03-04",300.0],["2026-03-08",600.0],["2026-03-18",500.0],["2026-03-26",600.0],["2026-03-28",4400.0],["2026-05-13",1200.0],["2026-05-20",2500.0],["2026-05-30",2000.0],["2026-06-11",1500.0],["2026-06-21",1700.0],["2026-06-28",1600.0],["2026-07-09",1200.0],["2026-07-20",1800.0],["2026-07-31",1300.0]],"today":"2026-07-31","usual":17,"target":"2026-08-27","cmp":{"months":["2026-05","2026-06","2026-07"],"opening":0.0,"low_thr":100.0,"low_amt":3000.0,"mon_amt":2500.0}},{"id":"PUB-17","opening":1155.0,"start":"2026-02-01","units":[5,5,6,5,4,5,6,7,5,4,6,4,5,10,6,3,6,3,6,4,6,5,6,7,7,3,5,5,10,11,6,9,7,8,6,9,9,9,8,9,14,10,2,10,7,6,10,5,7,9,9,7,11,9,9,11,7,10,9,19,17,15,14,13,23,14,12,16,16,18,19,13,9,15,16,16,13,12,14,11,5,11,14,9,16,15,18,12,19,29,19,19,22,17,25,15,15,18,19,24,28,22,12,23,21,21,31,21,20,30,31,24,27,19,12,20,29,33,19,16,23,22,27,9,16,11,13,27,18,19,17,24,23,20,12,24,18,17,18,18,28,21,29,17,13,20,29,15,21,25,23,19,11,12,8,24,7,16,10,18,16,7,15,17,16,17,15,17,15,15,17,14,22,19,18,10,17,19,8,18,19,16,18,18,17,19,9,18,13,13,17,17,14,9,10,12,15,18,16,10,12,22,15,16,17,14,18,16,20,10,18,12,13,17,12,18,9,11,5,14,12,14,13,14,7,13,15,18,14,12,12,16,10,15,10,12,16,14,11,12,9,10],"rec":[["2026-03-07",500.0],["2026-03-16",500.0],["2026-03-26",300.0],["2026-03-30",400.0],["2026-04-03",800.0],["2026-04-12",1300.0],["2026-04-28",1200.0],["2026-05-07",1900.0],["2026-05-21",1300.0],["2026-05-25",1200.0],["2026-05-30",1500.0],["2026-06-11",1300.0],["2026-06-22",1700.0],["2026-06-29",1900.0],["2026-07-18",1400.0],["2026-07-30",1000.0],["2026-08-08",700.0],["2026-08-16",900.0],["2026-08-25",800.0],["2026-08-29",4200.0]],"today":"2026-09-30","usual":12,"target":"2026-10-29","cmp":{"months":["2026-07","2026-08","2026-09"],"opening":0.0,"low_thr":200.0,"low_amt":2000.0,"mon_amt":2000.0}},{"id":"PUB-18","opening":851.0,"start":"2026-02-01","units":[6,6,6,5,4,4,6,6,7,6,4,8,6,4,4,8,6,7,7,7,7,7,4,5,7,6,6,6,12,8,8,10,7,8,6,9,14,9,7,9,11,14,10,8,4,9,11,11,12,14,11,8,7,12,11,11,14,12,11,17,17,17,14,17,13,12,9,22,20,9,21,14,20,14,13,20,16,16,11,13,6,11,23,15,17,13,10,17,16,29,20,33,10,22,18,30,12,33,27,16,8,18,26,19,33,30,28,26,23,36,24,22,25,27,23,23,33,20,32,30,27,31,21,20,14,22,21,20,18,14,28,18,25,20,19,18,21,28,17,27,18,19,20,34,19,12,14,26,17,27,16,22,23,21,13,27,13,17,14,24,14,17,22,18,16,16,27,18,17,18,21,22,17,25,17,19,16,23,25,14,14,15,19,16,14,21,22,21,17,23,11,25,21,18,15,15,16,17,21,13,15,20,13,15,21,13,10,18,15,19,27,18,14,15,19,16,10,13,12,14,9,16,18,17,9,14,20,15,20,13,15,8,14,19,16,15,15,21,7,22,18,6],"rec":[["2026-02-25",300.0],["2026-03-02",700.0],["2026-03-15",400.0],["2026-03-22",600.0],["2026-03-30",600.0],["2026-04-06",1300.0],["2026-04-19",1100.0],["2026-04-30",1300.0],["2026-05-10",1200.0],["2026-05-18",2500.0],["2026-05-28",1600.0],["2026-06-01",1400.0],["2026-06-13",1300.0],["2026-06-21",1900.0],["2026-06-30",1800.0],["2026-07-15",1800.0],["2026-07-27",1600.0],["2026-08-07",1400.0],["2026-08-19",800.0],["2026-08-25",1200.0],["2026-08-29",3000.0]],"today":"2026-09-30","usual":15,"target":"2026-10-14","cmp":{"months":["2026-07","2026-08","2026-09"],"opening":0.0,"low_thr":100.0,"low_amt":1500.0,"mon_amt":1500.0}},{"id":"PUB-19","opening":1388.0,"start":"2026-02-01","units":[5,5,5,7,5,6,7,6,6,8,4,6,5,6,6,3,7,4,6,4,7,8,4,7,5,7,6,5,12,9,10,9,15,5,6,9,11,11,12,16,8,12,12,14,7,7,10,9,9,8,13,13,10,11,11,11,11,10,10,15,14,16,20,19,12,17,8,13,17,18,13,24,9,17,19,11,17,20,14,13,18,11,11,10,18,11,15,21,16,16,17,28,24,25,19,25,36,28,19,23,31,28,22,13,30,27,20,16,20,26,34,19,24,25,12,26,23,18,12,17,18,28,25,19,22,30,19,19,18,14,23,18,17,13,34,22,17,27,16,24,28,20,27,18,18,26,25,23,20,12,16,14,14,19,21,13,14,15,21,20,10,21,16,18,19,12,20,15,13,23,13,23,17,14,16,15,26,13,16,14,21,7,14,15,17,12,17,10,21,19,14,14,15,10,15,16,16,21,23,19,24,19,14,18,13,9,19,16,12,19,15,13,17,9,15,13,13,16,13,15,16,12,14,19,10,17,15,15,17,12,16,13,18,9,14,16,16,16,15,14,18,15],"rec":[["2026-03-10",500.0],["2026-03-17",800.0],["2026-03-29",400.0],["2026-04-03",1400.0],["2026-04-18",700.0],["2026-04-25",1200.0],["2026-05-04",1200.0],["2026-05-12",1300.0],["2026-05-19",2400.0],["2026-05-30",2700.0],["2026-06-19",1300.0],["2026-06-25",1400.0],["2026-07-01",1600.0],["2026-07-18",700.0],["2026-07-24",700.0],["2026-07-28",1500.0],["2026-07-29",4300.0],["2026-09-23",1100.0]],"today":"2026-09-30","usual":15,"target":"2026-11-13","cmp":{"months":["2026-07","2026-08","2026-09"],"opening":0.0,"low_thr":150.0,"low_amt":3000.0,"mon_amt":2000.0}},{"id":"PUB-20","opening":814.0,"start":"2026-01-01","units":[5,3,4,5,5,3,3,3,4,4,4,5,5,3,5,3,6,4,3,4,6,5,5,6,6,5,5,4,5,4,3,5,6,8,7,6,4,5,6,7,4,5,5,4,4,8,7,4,6,7,6,7,5,8,4,3,5,3,6,5,9,8,9,7,9,8,8,6,8,7,7,6,10,10,4,9,8,7,12,8,7,9,10,9,8,5,8,11,7,7,10,13,10,11,14,10,12,15,11,16,9,11,9,19,13,13,15,11,17,20,11,18,14,20,14,11,18,17,12,15,19,17,10,10,20,27,17,22,15,19,17,17,20,20,19,17,13,14,20,21,25,13,18,18,20,20,18,16,15,13,19,24,16,10,12,19,7,14,26,13,18,12,22,9,12,22,21,21,18,20,23,19,11,11,23,24,20,21,20,17,20],"rec":[["2026-01-31",300.0],["2026-02-08",300.0],["2026-02-16",300.0],["2026-02-22",300.0],["2026-03-03",600.0],["2026-03-15",600.0],["2026-03-27",600.0],["2026-04-06",600.0],["2026-04-14",800.0],["2026-04-23",800.0],["2026-04-29",3300.0],["2026-05-28",1200.0],["2026-06-07",1500.0],["2026-06-21",1700.0]],"today":"2026-06-30","usual":19,"target":"2026-07-15","cmp":{"months":["2026-04","2026-05","2026-06"],"opening":0.0,"low_thr":150.0,"low_amt":1000.0,"mon_amt":2500.0}},{"id":"PUB-21","opening":1251.0,"start":"2026-02-01","units":[7,5,5,4,7,6,6,6,5,7,6,6,7,6,3,5,8,2,6,5,5,6,7,5,5,9,4,6,14,10,8,6,8,8,8,11,7,14,9,7,11,7,8,12,8,8,12,7,8,12,7,10,7,7,11,8,8,10,9,17,13,18,5,22,14,12,16,10,18,14,13,9,18,12,14,21,18,16,16,18,11,12,14,10,17,17,13,8,17,22,26,11,22,21,26,34,13,12,11,22,17,25,24,14,25,29,28,38,20,17,19,28,36,22,28,15,17,22,18,23,25,23,19,17,19,17,22,27,15,21,23,14,19,17,20,15,16,30,23,18,26,20,13,12,28,15,27,26,16,20,17,28,15,20,12,11,15,20,10,19,18,15,17,16,21,23,16,15,11,14,12,8,20,12,19,18,14,23,17,17,14,5,16,14,21,20,17,19,6,13,15,21,19,14,16,16,20,14,11,20,20,9,19,10,21,15,15,19,22,19,14,15,14,10,10,17,11,15,13,18,15,13,10,9,12,13,12,13],"rec":[["2026-03-08",400.0],["2026-03-14",700.0],["2026-03-26",500.0],["2026-04-03",800.0],["2026-04-12",700.0],["2026-04-19",800.0],["2026-04-28",800.0],["2026-05-04",1700.0],["2026-05-18",1500.0],["2026-05-24",2600.0],["2026-06-07",1200.0],["2026-06-17",1600.0],["2026-06-26",1500.0],["2026-06-27",3200.0],["2026-08-03",700.0],["2026-08-11",800.0],["2026-08-18",800.0],["2026-08-26",1400.0],["2026-09-05",400.0],["2026-09-09",300.0],["2026-09-12",300.0],["2026-09-16",400.0]],"today":"2026-09-16","usual":13,"target":"2026-10-22","cmp":{"months":["2026-06","2026-07","2026-08"],"opening":0.0,"low_thr":100.0,"low_amt":1500.0,"mon_amt":2000.0}},{"id":"PUB-22","opening":917.0,"start":"2026-01-01","units":[4,3,4,3,4,4,3,5,5,3,4,5,5,3,5,4,4,4,3,5,3,6,4,5,4,7,7,4,4,6,5,7,6,4,7,6,7,5,6,2,6,6,7,6,7,6,5,5,7,3,4,7,5,5,5,4,6,6,5,11,8,12,8,11,10,12,8,8,10,12,8,10,11,7,5,11,10,8,7,12,7,12,5,6,12,11,7,10,12,11,19,15,17,10,15,25,12,12,15,16,18,16,15,14,13,17,12,15,20,13,15,18,12,16,14,8,16,16,6,12,25,28,30,13,22,26,21,25,32,17,17,16,24,21,24,25,17,32,26,32,14,14,33,22,32,25,23,27,19,26,20,24,27,15,14,28,21,17,21,15,23,29,13,24,22,24,18,22,23,17,21,30,20,14,22,23,22,29,24,15,15,13,18,15,16,11,22,11,22,8,15,21,12,28,12,15],"rec":[["2026-02-04",300.0],["2026-02-12",300.0],["2026-02-19",400.0],["2026-03-02",700.0],["2026-03-14",400.0],["2026-03-21",400.0],["2026-03-27",400.0],["2026-04-01",800.0],["2026-04-10",800.0],["2026-04-18",800.0],["2026-04-26",1200.0],["2026-04-30",4600.0],["2026-05-30",1200.0],["2026-06-06",1700.0],["2026-06-19",1700.0],["2026-06-27",1100.0],["2026-07-03",300.0],["2026-07-05",400.0],["2026-07-09",300.0],["2026-07-12",400.0],["2026-07-15",400.0]],"today":"2026-07-15","usual":16,"target":"2026-08-20","cmp":{"months":["2026-04","2026-05","2026-06"],"opening":0.0,"low_thr":100.0,"low_amt":1000.0,"mon_amt":2500.0}},{"id":"PUB-23","opening":516.0,"start":"2025-12-01","units":[3,4,3,4,2,6,3,2,3,3,5,5,3,6,4,5,4,5,6,7,3,5,5,3,4,3,4,4,4,3,3,1,4,4,5,4,4,5,4,5,5,4,4,5,5,6,3,3,5,4,6,5,5,4,3,5,5,4,4,5,5,2,8,6,6,6,6,5,6,6,6,8,5,6,4,4,6,6,5,4,4,4,7,3,4,7,4,3,5,4,9,2,9,10,4,8,7,8,6,10,6,11,10,12,7,5,9,2,6,10,11,9,9,8,5,7,11,8,7,10,9,9,16,14,13,7,14,17,16,13,16,15,15,17,18,13,17,11,13,11,19,14,14,17,15,9,13,14,14,14,12,25,28,21,15,20,19,17,20,18,32,26,17,25,27,17,15,24,21,29,12,19,22,25,27,24,10,17,22,18,18,33],"rec":[["2025-12-20",300.0],["2025-12-29",300.0],["2026-01-10",300.0],["2026-01-20",300.0],["2026-01-28",300.0],["2026-02-05",300.0],["2026-02-13",300.0],["2026-02-21",300.0],["2026-03-02",300.0],["2026-03-08",500.0],["2026-03-18",300.0],["2026-03-23",500.0],["2026-04-01",500.0],["2026-04-08",1000.0],["2026-04-18",1000.0],["2026-04-29",5700.0]],"today":"2026-05-31","usual":21,"target":"2026-07-06","cmp":{"months":["2026-03","2026-04","2026-05"],"opening":0.0,"low_thr":100.0,"low_amt":1500.0,"mon_amt":1500.0}},{"id":"PUB-24","opening":209.0,"start":"2026-02-01","units":[5,6,7,7,8,5,7,6,3,4,5,5,8,5,6,5,5,5,8,8,7,6,7,5,5,6,4,7,13,9,9,18,8,9,10,10,13,9,4,9,10,9,11,10,10,9,10,6,8,11,9,12,6,8,9,8,11,11,6,15,11,15,6,12,17,24,13,18,12,11,18,19,17,20,20,14,18,11,13,13,22,12,17,17,20,18,15,17,12,15,14,32,26,25,33,37,25,29,17,21,26,25,14,20,25,26,26,24,21,36,21,31,11,12,21,28,30,27,20,19,18,17,28,24,24,27,15,32,18,24,43,16,18,24,31,18,37,21,15,21,27,18,24,21,15,19,23,20,24,28,24,24,16,16,19,19,17,21,23,17,17,20,19,11,15,26,24,25,18,16,17,24,15,8,16,19,16,20,20,17,15,14,14,15,17,13,24,15,23,24,17,20,18,13,15,13,18,15,20,14,20,21,19,20,20,21,11,5,13,16,13,12],"rec":[["2026-02-04",400.0],["2026-02-14",300.0],["2026-02-21",400.0],["2026-03-02",700.0],["2026-03-14",500.0],["2026-03-22",300.0],["2026-03-26",600.0],["2026-04-04",900.0],["2026-04-14",700.0],["2026-04-21",1400.0],["2026-05-01",1400.0],["2026-05-11",1900.0],["2026-05-21",2700.0],["2026-06-01",2600.0],["2026-06-18",1800.0],["2026-06-27",2600.0],["2026-06-29",3500.0],["2026-08-10",1200.0],["2026-08-21",1700.0]],"today":"2026-08-31","usual":16,"target":"2026-09-30","cmp":{"months":["2026-06","2026-07","2026-08"],"opening":0.0,"low_thr":100.0,"low_amt":5000.0,"mon_amt":1500.0}},{"id":"PUB-25","opening":1453.0,"start":"2026-01-01","units":[4,4,6,7,3,6,4,3,5,4,5,5,4,4,5,5,4,4,3,4,4,2,3,3,4,4,3,6,5,6,6,5,5,3,5,6,5,6,5,6,7,6,8,7,6,5,4,6,5,6,8,5,6,5,4,5,7,4,5,7,8,6,9,12,7,8,6,9,8,7,11,13,7,6,9,10,11,10,12,9,8,6,6,14,9,7,8,8,9,5,14,8,14,14,9,18,15,15,22,17,12,14,12,14,14,12,14,13,15,17,13,11,13,20,15,14,12,14,17,16,17,30,20,30,25,18,22,29,17,25,14,26,20,19,24,16,27,27,32,21,24,16,33,23,34,22,18,21,15,22,31,26,23,21,19,23,28,22,18,14,22,10,17,18,23,19,26,29,17,34,14,17,27,27,21,24,23,13,18,25,17,17,17,18,19,20,24,9,22,20,22,15,18,20,14,17,17,16],"rec":[["2026-02-22",400.0],["2026-03-05",500.0],["2026-03-14",400.0],["2026-03-20",600.0],["2026-03-31",700.0],["2026-04-09",1200.0],["2026-04-23",1200.0],["2026-04-29",5700.0],["2026-06-03",2100.0],["2026-06-20",2300.0],["2026-06-30",2200.0]],"today":"2026-07-17","usual":18,"target":"2026-08-04","cmp":{"months":["2026-04","2026-05","2026-06"],"opening":0.0,"low_thr":200.0,"low_amt":2000.0,"mon_amt":1500.0}}],"tariff":{"slabs":[[75,4.63],[200,6.31],[300,6.6],[400,6.99],[600,10.96],[null,12.63]],"demand":42.0,"rent":40.0,"vat":5.0}}</script>
+<script>
+window.__RAWDATA__=JSON.parse(document.getElementById('rawdata').textContent);
+
+const RAW=window.__RAWDATA__;
+const CMAP={}; RAW.cases.forEach(c=>CMAP[c.id]=c);
+let TARIFF=JSON.parse(JSON.stringify(RAW.tariff));
+let CUR=RAW.cases[0].id;
+let Q3={};                      // {usual,target} overrides; reset per case
+const MN={"01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun","07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec"};
+const bdt=n=>Number(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const bdt0=n=>Math.round(n).toLocaleString("en-US");
+const mlabel=k=>MN[k.slice(5)]+" "+k.slice(0,4);
+
+/* ---------- build pills + tariff editor once ---------- */
+(function(){
+  const p=document.getElementById("pills");
+  RAW.cases.forEach(c=>{const b=document.createElement("button");
+    b.className="pill-c";b.dataset.id=c.id;
+    b.innerHTML=c.id+'<span class="sdot"></span>';
+    b.onclick=()=>select(c.id,true);p.appendChild(b);});
+  buildTariffEditor();
+})();
+
+function buildTariffEditor(){
+  const g=document.getElementById("tedit");let prev=0,h="";
+  TARIFF.slabs.forEach((s,i)=>{const lo=prev+1,hi=s[0];
+    h+=`<div class="te"><label>${lo}${hi===null?"+":"&ndash;"+hi} units</label>
+      <input type="number" step="0.01" min="0" data-slab="${i}" value="${s[1]}">
+      <div class="un">BDT / unit</div></div>`; prev=(hi===null?prev:hi);});
+  g.innerHTML=h;
+  document.getElementById("t-demand").value=TARIFF.demand;
+  document.getElementById("t-rent").value=TARIFF.rent;
+  document.getElementById("t-vat").value=TARIFF.vat;
+  g.querySelectorAll("input").forEach(inp=>inp.oninput=()=>{
+    const v=parseFloat(inp.value); if(!isNaN(v)) TARIFF.slabs[+inp.dataset.slab][1]=v; recomputeGlobal();});
+  [["t-demand","demand"],["t-rent","rent"],["t-vat","vat"]].forEach(([id,key])=>{
+    document.getElementById(id).oninput=e=>{const v=parseFloat(e.target.value);
+      if(!isNaN(v)){TARIFF[key]=v; recomputeGlobal();}};});
+  document.getElementById("treset").onclick=()=>{TARIFF=JSON.parse(JSON.stringify(RAW.tariff));
+    buildTariffEditor(); recomputeGlobal();};
+}
+
+/* recompute everything that depends on the tariff (all cases) */
+function recomputeGlobal(){
+  const isDefault=JSON.stringify(TARIFF)===JSON.stringify(RAW.tariff);
+  const flag=document.getElementById("tflag");
+  flag.textContent=isDefault?"ASSUMED":"CUSTOM"; flag.style.color=isDefault?"":"var(--good)";
+  flag.style.borderColor=isDefault?"":"var(--good)";
+  buildAllTable(); render();
+}
+
+/* ---------- all-cases table ---------- */
+function buildAllTable(){
+  const tb=document.querySelector("#alltable tbody");let h="",sc=0,tot=0,calE=0,calR=0;
+  RAW.cases.forEach(c=>{const i4=P10.item4(c,TARIFF);const save=i4.cheaper!=="equal";if(save)sc++;
+    // pill saver dot
+    const pill=document.querySelector('.pill-c[data-id="'+c.id+'"]');if(pill)pill.classList.toggle("saver",save);
+    h+=`<tr data-id="${c.id}" class="${save?'save':''}"><td>${c.id}</td>
+      <td class="mono">${bdt(i4.low.cost)}</td><td class="mono">${bdt(i4.monthly.cost)}</td>
+      <td class="mono">${i4.absDiff>0.005?bdt(i4.absDiff):'&mdash;'}</td>
+      <td class="mono">${i4.low.fixedMonths} / ${i4.monthly.fixedMonths}</td>
+      <td><span class="pill ${save?'save':'eq'}">${save?i4.cheaper:'equal'}</span></td></tr>`;});
+  tb.innerHTML=h;
+  tb.querySelectorAll("tr").forEach(tr=>tr.onclick=()=>select(tr.dataset.id,true));
+  document.querySelectorAll("#alltable tbody tr").forEach(tr=>tr.classList.toggle("sel",tr.dataset.id===CUR));
+  document.getElementById("tblnote").innerHTML=
+    `Under this tariff, <b>${sc}</b> of 25 households favour low&#8209;balance and the rest are exactly equal.`;
+  // calibration line: compare cost to actual recharges across all cases
+  let sumCost=0,sumRech=0;
+  RAW.cases.forEach(c=>{const led=P10.rebuild(c,TARIFF);
+    sumCost+=led.reduce((s,l)=>s+l.energy+l.evat+l.fixed,0);
+    sumRech+=c.rec.reduce((s,r)=>s+r[1],0);});
+  const pct=((sumCost-sumRech)/sumRech*100);
+  document.getElementById("calib").innerHTML=
+    `Calibration: total computed cost <b>BDT ${bdt0(sumCost)}</b> vs total actual recharges
+     <b>BDT ${bdt0(sumRech)}</b> &mdash; <b>${pct>=0?'+':''}${pct.toFixed(1)}%</b>.
+     Near zero means the tariff matches how these families actually recharged.`;
+}
+
+/* ---------- selection ---------- */
+function select(id,scroll){
+  if(!CMAP[id])return;
+  CUR=id; Q3={};                 // reset Q3 overrides to case defaults
+  try{history.replaceState(null,"","#"+id);}catch(e){}
+  document.querySelectorAll(".pill-c").forEach(b=>b.classList.toggle("on",b.dataset.id===id));
+  document.querySelectorAll("#alltable tbody tr").forEach(tr=>tr.classList.toggle("sel",tr.dataset.id===id));
+  if(scroll){const on=document.querySelector(".pill-c.on");on&&on.scrollIntoView({inline:"center",block:"nearest",behavior:"smooth"});}
+  // reset Q3 controls
+  const c=CMAP[id];
+  document.getElementById("usual").value=c.usual;
+  document.getElementById("target").value=c.target;
+  render();
+}
+
+let LED=null,I3=null; // cache for chart/ledger/export
+function render(){
+  const c=CMAP[CUR];
+  LED=P10.rebuild(c,TARIFF);
+  const i1=P10.item1(c);
+  I3=P10.item3(c,LED,TARIFF,Q3);
+  const i4=P10.item4(c,TARIFF);
+
+  /* KPI */
+  const neg=I3.balToday<0;
+  setT("k-bal","BDT "+bdt0(I3.balToday)); document.getElementById("k-bal").classList.toggle("neg",neg);
+  setT("k-bals","as of "+I3.today+(neg?" (in deficit)":""));
+  setT("k-out",I3.runout); setT("k-outs",I3.daily+" u/day, no recharge");
+  setT("k-top","BDT "+bdt0(I3.required)); setT("k-tops","to last to "+I3.target+" ("+I3.daysToTarget+"d)");
+  setT("k-hab",i4.cheaper==="equal"?"Equal":i4.cheaper);
+  setT("k-habs",i4.cheaper==="equal"?"both habits identical":"saves BDT "+bdt(i4.absDiff));
+
+  /* item1 */
+  const mk=Object.keys(i1.mu).sort();
+  document.getElementById("item1lead").innerHTML=
+    `<b>${mk.length}</b> consecutive months of daily unit readings (${mlabel(mk[0])} &ndash; ${mlabel(mk[mk.length-1])}),
+     containing the three shapes the brief requires: a light month, a heavy summer month, and a month
+     with a large recharge in its final week.`;
+  let h="";mk.forEach(k=>{const partial=!i1.full[k];let cls="",bg="";
+    if(k===i1.light){cls="tag-light";bg='<span class="badge">light</span>';}
+    if(k===i1.heavy){cls="tag-heavy";bg='<span class="badge">heavy &middot; summer</span>';}
+    h+=`<div class="mo ${cls}" style="${partial?'opacity:.6':''}"><div class="m">${mlabel(k)}</div>
+      <div class="v">${i1.mu[k]}</div><div class="u">${partial?'units &middot; partial':'units'}</div>${bg}</div>`;});
+  document.getElementById("months").innerHTML=h;
+  const L=i1.late;
+  document.getElementById("latechip").innerHTML=L[0]
+    ?`<span>&#9889;</span><div>Large late&#8209;week recharge &mdash; <b>BDT ${bdt(L[1])}</b> on <b>${L[0]}</b>,
+       inside the final seven days of the month.</div>`
+    :`<span>&#9889;</span><div>This household's largest recharge sits earlier in its month.</div>`;
+
+  /* chart */
+  const cw=document.getElementById("cw");cw.style.opacity=0;
+  requestAnimationFrame(()=>{drawChart();cw.style.opacity=1;});
+  const nR=LED.filter(l=>l.recharge>0).length;
+  document.getElementById("chartnote").innerHTML=
+    `Opening balance BDT ${bdt(c.opening)} &middot; ${nR} recharge events &middot; projection assumes
+     ${I3.daily} units/day and no further top-ups. Hover any point for the day's detail.`;
+
+  /* ledger table */
+  renderLedger();
+
+  /* item3 */
+  setT("q1date",I3.runout);
+  document.getElementById("q1cap").innerHTML=
+    `Balance today (${I3.today}) is <b class="mono">BDT ${bdt(I3.balToday)}</b> at ${I3.daily} units/day.
+     Last fully covered day: ${I3.lastOk}.`;
+  setT("usualv",I3.daily);
+  setT("q2amt","BDT "+bdt0(I3.required));
+  document.getElementById("q2cap").innerHTML=
+    `Net top&#8209;up to reach <b>${I3.target}</b> (${I3.daysToTarget} days).`;
+  const rows=[["Energy at base slab",I3.eBase],["Higher&#8209;slab part",I3.uplift],["Fixed charges",I3.fixed],["VAT",I3.vat]];
+  let hb="";rows.forEach(([l,v])=>{hb+=`<div class="row"><span class="lbl">${l}</span><span class="mono">${bdt(v)}</span></div>`;});
+  hb+=`<div class="row tot"><span>Gross period bill</span><span class="mono">${bdt(I3.gross)}</span></div>`;
+  const deficit=I3.balToday<0;
+  hb+=`<div class="row"><span class="lbl">${deficit?'Plus current deficit':'Less balance on hand'}</span>
+    <span class="mono">${deficit?'+':'&minus;'}${bdt(Math.abs(I3.balToday))}</span></div>`;
+  hb+=`<div class="row net"><span>Recharge today</span><span class="mono">${bdt(I3.required)}</span></div>`;
+  document.getElementById("q2brk").innerHTML=hb;
+
+  /* item4 */
+  const lo=i4.low,mo=i4.monthly,eq=i4.cheaper==="equal";
+  const vd=document.getElementById("verdict");vd.style.borderLeftColor=eq?"var(--ink2)":"var(--good)";
+  vd.innerHTML=`<div><div class="tag" style="color:${eq?'var(--ink2)':'var(--good)'}">${eq?'Result':'Cheaper habit'}</div>
+    <div class="amt">${eq?'Identical cost':i4.cheaper+' wins'}</div></div>
+    <p>${eq?`Both habits recharge in all three months, so the same first&#8209;recharge fixed charges fire.
+    Equal to the paisa &mdash; a legitimate outcome.`
+    :`Difference of <b>BDT ${bdt(i4.absDiff)}</b> &mdash; exactly the fixed charge for the ${mo.fixedMonths-lo.fixedMonths}
+     month(s) the low&#8209;balance habit never needed to top up.`}</p>`;
+  function bar(title,who,x){const tot=x.energy+x.evat+x.fixed||1,p=v=>100*v/tot;
+    return `<div class="hb"><h4>${title}</h4><div class="who">${who}</div>
+     <div class="stk"><i class="e" style="width:${p(x.energy)}%"></i><i class="v" style="width:${p(x.evat)}%"></i><i class="f" style="width:${p(x.fixed)}%"></i></div>
+     <div class="kv">
+       <div><span><span class="sw" style="background:var(--cyan)"></span>Energy</span><span class="mono">${bdt(x.energy)}</span></div>
+       <div><span><span class="sw" style="background:var(--amber)"></span>VAT</span><span class="mono">${bdt(x.evat)}</span></div>
+       <div><span><span class="sw" style="background:var(--bad)"></span>Fixed (${x.fixedMonths} mo)</span><span class="mono">${bdt(x.fixed)}</span></div>
+       <div style="border-top:1px solid var(--line2);padding-top:5px;font-weight:600"><span>Consumed cost</span><span class="mono">${bdt(x.cost)}</span></div>
+     </div></div>`;}
+  document.getElementById("hbars").innerHTML=
+    bar("Low&#8209;balance",`top up ${bdt0(c.cmp.low_amt)} below ${bdt0(c.cmp.low_thr)}`,lo)+
+    bar("Monthly",`top up ${bdt0(c.cmp.mon_amt)} on the 1st`,mo);
+  document.querySelectorAll("#alltable tbody tr").forEach(tr=>tr.classList.toggle("sel",tr.dataset.id===CUR));
+}
+function setT(id,t){document.getElementById(id).textContent=t;}
+
+/* ---------- ledger table + export ---------- */
+function renderLedger(){
+  const tb=document.querySelector("#ledtable tbody");let h="";
+  LED.forEach(l=>{h+=`<tr class="${l.recharge>0?'rc':''}"><td class="mono">${l.date}</td>
+    <td class="mono">${l.units}</td><td class="mono">${l.cum}</td>
+    <td class="mono">${l.recharge>0?bdt(l.recharge):'&mdash;'}</td>
+    <td class="mono">${l.fixed>0?bdt(l.fixed):'&mdash;'}</td>
+    <td class="mono">${bdt(l.energy)}</td><td class="mono">${bdt(l.evat)}</td>
+    <td class="mono">${bdt(l.balance)}</td></tr>`;});
+  tb.innerHTML=h;
+}
+function ledgerCSV(){
+  let s="date,units,cum_units,recharge,fixed,energy,vat,balance\n";
+  LED.forEach(l=>{s+=[l.date,l.units,l.cum,l.recharge.toFixed(2),l.fixed.toFixed(2),
+    l.energy.toFixed(2),l.evat.toFixed(2),l.balance.toFixed(2)].join(",")+"\n";});
+  return s;
+}
+function ledgerJSON(){
+  return JSON.stringify(LED.map(l=>({date:l.date,units:l.units,cum:l.cum,
+    recharge:+l.recharge.toFixed(2),fixed:+l.fixed.toFixed(2),energy:+l.energy.toFixed(2),
+    vat:+l.evat.toFixed(2),balance:+l.balance.toFixed(2)})),null,1);
+}
+function showExport(txt){const p=document.getElementById("exportpanel");p.style.display="block";
+  const a=document.getElementById("exparea");a.value=txt;a.focus();a.select();
+  document.getElementById("expmsg").textContent="";}
+document.getElementById("expcsv").onclick=e=>{e.preventDefault();showExport(ledgerCSV());};
+document.getElementById("expjson").onclick=e=>{e.preventDefault();showExport(ledgerJSON());};
+document.getElementById("expcopy").onclick=()=>{const a=document.getElementById("exparea");
+  a.select();let ok=false;try{ok=document.execCommand("copy");}catch(e){}
+  if(navigator.clipboard){navigator.clipboard.writeText(a.value).then(()=>{
+    document.getElementById("expmsg").textContent="Copied.";},()=>{});}
+  document.getElementById("expmsg").textContent=ok?"Copied.":"Select all &amp; copy manually.";};
+document.getElementById("ledgerbox").addEventListener("toggle",e=>{
+  document.getElementById("ledchev").innerHTML=e.target.open?"hide &#9652;":"show &#9662;";});
+
+/* ---------- Q3 controls ---------- */
+document.getElementById("usual").oninput=e=>{Q3.usual=+e.target.value;render();};
+document.getElementById("target").onchange=e=>{if(e.target.value){Q3.target=e.target.value;render();}};
+document.getElementById("tgtreset").onclick=()=>{delete Q3.target;
+  document.getElementById("target").value=CMAP[CUR].target;render();};
+
+/* ---------- chart (history + projection) ---------- */
+function drawChart(){
+  const cv=document.getElementById("chart"),ctx=cv.getContext("2d");
+  const cs=getComputedStyle(document.body),col=k=>cs.getPropertyValue(k).trim();
+  const W=cv.width,H=cv.height,PL=88,PR=26,PT=24,PB=52;
+  const hist=LED, proj=I3.runoutProj||[];
+  const series=hist.map(l=>({date:l.date,bal:l.balance,rc:l.recharge,units:l.units,proj:false}))
+    .concat(proj.map(p=>({date:p.date,bal:p.balance,rc:0,units:I3.daily,proj:true})));
+  const n=series.length, splitAt=hist.length-1;
+  const bals=series.map(s=>s.bal);
+  let mn=Math.min(0,...bals),mx=Math.max(...bals);const pad=(mx-mn)*0.08||10;mx+=pad;mn-=pad;
+  const X=i=>PL+(W-PL-PR)*i/(n-1),Y=v=>PT+(H-PT-PB)*(1-(v-mn)/(mx-mn));
+  ctx.clearRect(0,0,W,H);
+  const ink2=col("--ink2"),grid=col("--grid"),cyan=col("--cyan"),bad=col("--bad"),amber=col("--amber"),panel=col("--panel");
+  ctx.font='21px "IBM Plex Mono",monospace';
+  ctx.strokeStyle=grid;ctx.fillStyle=ink2;ctx.lineWidth=1;
+  for(let s=0;s<=5;s++){const v=mn+(mx-mn)*s/5,y=Y(v);
+    ctx.beginPath();ctx.moveTo(PL,y);ctx.lineTo(W-PR,y);ctx.stroke();
+    ctx.textAlign="right";ctx.fillText(bdt0(v),PL-12,y+7);}
+  if(mn<0){ctx.strokeStyle=bad;ctx.lineWidth=2;ctx.setLineDash([7,6]);
+    ctx.beginPath();ctx.moveTo(PL,Y(0));ctx.lineTo(W-PR,Y(0));ctx.stroke();ctx.setLineDash([]);}
+  // month gridlines
+  ctx.textAlign="center";ctx.font='19px "IBM Plex Mono",monospace';let lastM="";
+  series.forEach((s,i)=>{const m=s.date.slice(0,7);if(m!==lastM){lastM=m;
+    ctx.strokeStyle=grid;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(i),PT);ctx.lineTo(X(i),H-PB);ctx.stroke();
+    ctx.fillStyle=ink2;ctx.fillText(MN[m.slice(5)],X(i)+26,H-20);}});
+  // today divider
+  if(proj.length){ctx.strokeStyle=amber;ctx.globalAlpha=.5;ctx.lineWidth=1.5;ctx.setLineDash([3,4]);
+    ctx.beginPath();ctx.moveTo(X(splitAt),PT);ctx.lineTo(X(splitAt),H-PB);ctx.stroke();
+    ctx.setLineDash([]);ctx.globalAlpha=1;}
+  // history area
+  const g=ctx.createLinearGradient(0,PT,0,H-PB);g.addColorStop(0,cyan+"55");g.addColorStop(1,cyan+"05");
+  ctx.beginPath();ctx.moveTo(X(0),Y(bals[0]));
+  for(let i=1;i<=splitAt;i++)ctx.lineTo(X(i),Y(bals[i]));
+  ctx.lineTo(X(splitAt),Y(mn));ctx.lineTo(X(0),Y(mn));ctx.closePath();ctx.fillStyle=g;ctx.fill();
+  // history line (rounded, soft glow)
+  ctx.lineCap="round";ctx.lineJoin="round";
+  ctx.save();ctx.shadowColor=cyan;ctx.shadowBlur=9;
+  ctx.beginPath();ctx.moveTo(X(0),Y(bals[0]));
+  for(let i=1;i<=splitAt;i++)ctx.lineTo(X(i),Y(bals[i]));
+  ctx.strokeStyle=cyan;ctx.lineWidth=2.7;ctx.stroke();ctx.restore();
+  // projection dashed
+  if(proj.length){ctx.beginPath();ctx.moveTo(X(splitAt),Y(bals[splitAt]));
+    for(let i=splitAt+1;i<n;i++)ctx.lineTo(X(i),Y(bals[i]));
+    ctx.strokeStyle=bad;ctx.lineWidth=2.4;ctx.setLineDash([6,5]);ctx.stroke();ctx.setLineDash([]);
+    // run-out marker (soft halo)
+    const li=n-1;ctx.save();ctx.shadowColor=bad;ctx.shadowBlur=10;
+    ctx.beginPath();ctx.arc(X(li),Y(bals[li]),5.5,0,7);ctx.fillStyle=bad;ctx.fill();ctx.restore();}
+  // "today" endpoint on history — luminous cyan dot
+  const ex=X(splitAt),ey=Y(bals[splitAt]);
+  ctx.save();ctx.shadowColor=cyan;ctx.shadowBlur=13;
+  ctx.beginPath();ctx.arc(ex,ey,4.6,0,7);ctx.fillStyle=cyan;ctx.fill();ctx.restore();
+  ctx.beginPath();ctx.arc(ex,ey,2.1,0,7);ctx.fillStyle=panel;ctx.fill();
+  // recharge markers
+  series.forEach((s,i)=>{if(s.rc>0){ctx.beginPath();ctx.arc(X(i),Y(s.bal),6.5,0,7);
+    ctx.fillStyle=panel;ctx.fill();ctx.lineWidth=2.8;ctx.strokeStyle=amber;ctx.stroke();}});
+  window._chart={X,Y,series,n};
+}
+(function(){const cv=document.getElementById("chart"),tip=document.getElementById("tip");
+  cv.addEventListener("mousemove",e=>{const r=cv.getBoundingClientRect(),sx=cv.width/r.width;
+    const C=window._chart;if(!C)return;let bi=Math.round(((e.clientX-r.left)*sx-88)/((cv.width-114)/(C.n-1)));
+    bi=Math.max(0,Math.min(C.n-1,bi));const s=C.series[bi];
+    tip.style.opacity=1;tip.style.left=(C.X(bi)/sx)+"px";tip.style.top=(C.Y(s.bal)/sx)+"px";
+    tip.innerHTML=`${s.date}${s.proj?" &middot; proj":""} &middot; ${s.units}u<br>bal ${bdt(s.bal)}`+(s.rc>0?`<br>+recharge ${bdt(s.rc)}`:"");});
+  cv.addEventListener("mouseleave",()=>tip.style.opacity=0);})();
+
+/* ---------- theme ---------- */
+(function(){const btn=document.getElementById("tgl");
+  function cur(){const a=document.documentElement.getAttribute("data-theme");
+    return a||(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light");}
+  try{const s=localStorage.getItem("p10theme");if(s)document.documentElement.setAttribute("data-theme",s);}catch(e){}
+  btn.onclick=()=>{const nx=cur()==="dark"?"light":"dark";
+    document.documentElement.setAttribute("data-theme",nx);
+    try{localStorage.setItem("p10theme",nx);}catch(e){}drawChart();};})();
+matchMedia("(prefers-color-scheme:dark)").addEventListener&&
+  matchMedia("(prefers-color-scheme:dark)").addEventListener("change",()=>drawChart());
+
+/* ---------- keyboard nav + deep link ---------- */
+document.addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")return;
+  const ids=RAW.cases.map(c=>c.id),i=ids.indexOf(CUR);
+  if(e.key==="ArrowRight"&&i<ids.length-1)select(ids[i+1],true);
+  if(e.key==="ArrowLeft"&&i>0)select(ids[i-1],true);});
+
+/* boot */
+buildAllTable();
+const startId=(location.hash||"").replace("#","");
+select(CMAP[startId]?startId:RAW.cases[0].id,false);
+
+</script>
+</body>
+</html>

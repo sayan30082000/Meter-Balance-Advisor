@@ -2,7 +2,7 @@
 
 A prepaid electricity meter advisor that runs entirely in the browser. One HTML file, no build step, no dependencies, no network calls — open `index.html` and it works offline.
 
-**Live demo:** https://letaidothehardwork.github.io/meter-balance-advisor/
+**Live demo:** hosted on Netlify (link added after the first deploy)
 
 ## What it does
 
@@ -33,8 +33,8 @@ Inside it, in order: the CSS, the pure billing engine (`window.P10` — `rebuild
 ## Running it
 
 ```bash
-git clone https://github.com/letaidothehardwork/meter-balance-advisor.git
-cd meter-balance-advisor
+git clone https://github.com/sayan30082000/Meter-Balance-Advisor.git
+cd Meter-Balance-Advisor
 open index.html          # or: python3 -m http.server 8000
 ```
 

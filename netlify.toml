@@ -1,0 +1,3 @@
+# Static single-file app: nothing to build, publish the repo root.
+[build]
+  publish = "."

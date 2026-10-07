@@ -2,7 +2,7 @@
 
 A prepaid electricity meter advisor that runs entirely in the browser. One HTML file, no build step, no dependencies, no network calls — open `index.html` and it works offline.
 
-**Live demo:** hosted on Netlify (link added after the first deploy)
+**Live demo:** https://meter-balance-advisor.netlify.app
 
 ## What it does
 
